@@ -8,7 +8,7 @@
 import UIKit
 
 @IBDesignable
-class ScaleControl: UIControl {
+public class ScaleControl: UIControl {
     public static var noValue = -999
     
     @IBInspectable public var minimumValue: Int {
@@ -54,7 +54,7 @@ class ScaleControl: UIControl {
     
     @objc dynamic public var font: UIFont = .preferredFont(forTextStyle: .body)
     
-    init(range: ClosedRange<Int>) {
+    public init(range: ClosedRange<Int>) {
         self.range = range
         
         super.init(frame: .zero)
@@ -62,11 +62,19 @@ class ScaleControl: UIControl {
         self.configureViews()
     }
     
-    convenience init(minimumValue: Int, maximumValue: Int) {
+    convenience public init(minimumValue: Int, maximumValue: Int) {
         self.init(range: minimumValue...maximumValue)
     }
     
-    override func layoutSubviews() {
+    public override init(frame: CGRect) {
+        self.range = 1...10
+        
+        super.init(frame: .zero)
+        
+        self.configureViews()
+    }
+    
+    override public func layoutSubviews() {
         super.layoutSubviews()
                 
         self.layoutNumberLabels()
@@ -82,7 +90,7 @@ class ScaleControl: UIControl {
         self.selectionView.layer.cornerRadius = min(self.selectionView.bounds.height, self.selectionView.bounds.width) / 2
     }
     
-    func setSelectedValue(_ selectedValue: Int, animated: Bool) {
+    public func setSelectedValue(_ selectedValue: Int, animated: Bool) {
         let updateBlock = {
             self.selectedValue = selectedValue
         }
@@ -93,6 +101,8 @@ class ScaleControl: UIControl {
             updateBlock()
         }
     }
+    
+        //public func
         
     // MARK: - NSCoding
     
