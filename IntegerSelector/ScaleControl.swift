@@ -123,14 +123,11 @@ class ScaleControl: UIControl {
     
     private var value: Int? {
         didSet {
-            self.displayedValue = self.value.flatMap { CGFloat($0) }
             self.updateSelection()
             self.setNeedsLayout()
         }
     }
-    
-    private var displayedValue: CGFloat?
-    
+        
     private var range: ClosedRange<Int> {
         didSet {
             self.configureNumberLabels()
