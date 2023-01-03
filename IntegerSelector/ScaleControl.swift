@@ -42,6 +42,18 @@ public class ScaleControl: UIControl {
         }
     }
     
+    @IBInspectable public var minimumDescription: String? {
+        didSet {
+            self.minimumLabel.text = self.minimumDescription
+        }
+    }
+    
+    @IBInspectable public var maximumDescription: String? {
+        didSet {
+            self.maximumLabel.text = self.maximumDescription
+        }
+    }
+    
     @objc dynamic public var scaleColor: UIColor = .secondarySystemBackground
     
     @objc dynamic public var selectionColor: UIColor = .tintColor
@@ -52,8 +64,12 @@ public class ScaleControl: UIControl {
     
     @objc dynamic public var selectorInset: CGFloat = 2
     
-    @objc dynamic public var font: UIFont = .preferredFont(forTextStyle: .body)
-    
+    @objc dynamic public var numberFont: UIFont = .preferredFont(forTextStyle: .body)
+
+    @objc dynamic public var descriptionFont: UIFont = .preferredFont(forTextStyle: .footnote)
+
+    @objc dynamic public var descriptionColor: UIColor = .secondaryLabel
+
     public init(range: ClosedRange<Int>) {
         self.range = range
         
@@ -88,6 +104,9 @@ public class ScaleControl: UIControl {
         self.updateSelection()
 
         self.selectionView.layer.cornerRadius = min(self.selectionView.bounds.height, self.selectionView.bounds.width) / 2
+        
+        self.minimumLabel.frame = CGRectMake(0, self.scaleView.frame.maxY, self.bounds.width, self.bounds.height - self.scaleView.frame.maxY)
+        self.maximumLabel.frame = CGRectMake(0, self.scaleView.frame.maxY, self.bounds.width, self.bounds.height - self.scaleView.frame.maxY)
     }
     
     public func setSelectedValue(_ selectedValue: Int, animated: Bool) {
@@ -127,6 +146,8 @@ public class ScaleControl: UIControl {
     private var numberLabels = [UILabel]()
     private let selectionView = UIView()
     private let scaleView = UIView()
+    private let minimumLabel = UILabel()
+    private let maximumLabel = UILabel()
     
     private let tapGestureRecognizer = UITapGestureRecognizer()
     private let panGestureRecognizer = UIPanGestureRecognizer()
@@ -150,7 +171,7 @@ public class ScaleControl: UIControl {
         self.addSubview(self.scaleView)
         
         self.tapGestureRecognizer.addTarget(self, action: #selector(tap(_:)))
-        self.scaleView.addGestureRecognizer(self.tapGestureRecognizer)
+        self.addGestureRecognizer(self.tapGestureRecognizer)
         
         self.panGestureRecognizer.addTarget(self, action: #selector(pan(_:)))
         self.addGestureRecognizer(self.panGestureRecognizer)
@@ -159,6 +180,18 @@ public class ScaleControl: UIControl {
         self.scaleView.addSubview(self.selectionView)
 
         self.configureNumberLabels()
+        
+        self.minimumLabel.font = self.descriptionFont
+        self.minimumLabel.textColor = self.descriptionColor
+        self.minimumLabel.adjustsFontForContentSizeCategory = true
+        self.minimumLabel.textAlignment = .left
+        self.addSubview(self.minimumLabel)
+        
+        self.maximumLabel.font = self.descriptionFont
+        self.maximumLabel.textColor = self.descriptionColor
+        self.maximumLabel.adjustsFontForContentSizeCategory = true
+        self.maximumLabel.textAlignment = .right
+        self.addSubview(self.maximumLabel)
                         
         self.updateSelection()
     }
@@ -177,7 +210,7 @@ public class ScaleControl: UIControl {
             label.tag = index
             label.isUserInteractionEnabled = true
             label.adjustsFontForContentSizeCategory = true
-            label.font = self.font
+            label.font = self.numberFont
             
             self.numberLabels.append(label)
             self.scaleView.insertSubview(label, aboveSubview: self.selectionView)
@@ -215,12 +248,23 @@ public class ScaleControl: UIControl {
     }
     
     @objc private func tap(_ sender: UITapGestureRecognizer) {
-        let index = Int(sender.location(in: self.scaleView).x * CGFloat(self.range.count) / self.scaleView.bounds.width)
-        let correspondingValue = self.range.clamp(index + range.lowerBound)
-        
-        if self.value != correspondingValue {
-            self.value = correspondingValue
-            self.sendActions(for: .valueChanged)
+        if sender.location(in: self).y > self.scaleView.frame.maxY {
+            // Tapping on description labels increments/decrements the value,
+            // or sets it to the extreme if not yet set.
+            if sender.location(in: self).x < self.bounds.width / 2 {
+                self.value = self.value.flatMap { self.range.clamp($0 - 1) } ?? self.range.lowerBound
+            } else {
+                self.value = self.value.flatMap { self.range.clamp($0 + 1) } ?? self.range.upperBound
+            }
+        } else {
+            // Tapping on the scale immediately sets to the nearest value.
+            let index = Int(sender.location(in: self.scaleView).x * CGFloat(self.range.count) / self.scaleView.bounds.width)
+            let correspondingValue = self.range.clamp(index + range.lowerBound)
+            
+            if self.value != correspondingValue {
+                self.value = correspondingValue
+                self.sendActions(for: .valueChanged)
+            }
         }
     }
     
@@ -229,6 +273,7 @@ public class ScaleControl: UIControl {
         let correspondingValue = self.range.clamp(index + range.lowerBound)
         
         if let value = self.value, abs(value - correspondingValue) > 1 || self.value == nil {
+            // Don't recognize a pan if not starting close to current value.
             sender.reset()
         } else {
             self.value = correspondingValue
