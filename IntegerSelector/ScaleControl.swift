@@ -77,9 +77,21 @@ class ScaleControl: UIControl {
         
         self.scaleView.layer.cornerRadius = min(buttonSize.width, buttonSize.height) / 2
         
-        self.updateSelection(animated: false)
+        self.updateSelection()
 
         self.selectionView.layer.cornerRadius = min(self.selectionView.bounds.height, self.selectionView.bounds.width) / 2
+    }
+    
+    func setSelectedValue(_ selectedValue: Int, animated: Bool) {
+        let updateBlock = {
+            self.selectedValue = selectedValue
+        }
+        
+        if animated {
+            UIView.animate(withDuration: Self.animationDuration, animations: updateBlock)
+        } else {
+            updateBlock()
+        }
     }
         
     // MARK: - NSCoding
@@ -112,7 +124,7 @@ class ScaleControl: UIControl {
     private var value: Int? {
         didSet {
             self.displayedValue = self.value.flatMap { CGFloat($0) }
-            self.updateSelection(animated: false)
+            self.updateSelection()
             self.setNeedsLayout()
         }
     }
@@ -141,7 +153,7 @@ class ScaleControl: UIControl {
 
         self.configureNumberLabels()
                         
-        self.updateSelection(animated: false)
+        self.updateSelection()
     }
         
     private func configureNumberLabels() {
@@ -179,27 +191,19 @@ class ScaleControl: UIControl {
         }
     }
 
-    private func updateSelection(animated: Bool) {
-        let updateBlock = {
-            if let value = self.value {
-                self.selectionView.isHidden = false
-                
-                let selectedLabel = self.numberLabels[value - self.range.lowerBound]
-                
-                for label in self.numberLabels {
-                    label.textColor = label == selectedLabel ? self.selectedNumberColor : self.numberColor
-                }
-                
-                self.selectionView.frame = selectedLabel.frame.insetBy(dx: self.selectorInset, dy: self.selectorInset)
-            } else {
-                self.selectionView.isHidden = true
+    private func updateSelection() {
+        if let value = self.value {
+            self.selectionView.isHidden = false
+            
+            let selectedLabel = self.numberLabels[value - self.range.lowerBound]
+            
+            for label in self.numberLabels {
+                label.textColor = label == selectedLabel ? self.selectedNumberColor : self.numberColor
             }
-        }
-        
-        if animated {
-            UIView.animate(withDuration: Self.animationDuration, animations: updateBlock)
+            
+            self.selectionView.frame = selectedLabel.frame.insetBy(dx: self.selectorInset, dy: self.selectorInset)
         } else {
-            updateBlock()
+            self.selectionView.isHidden = true
         }
     }
     
