@@ -9,7 +9,7 @@ import UIKit
 
 @IBDesignable
 class ScaleControl: UIControl {
-    public static var noValue = -1
+    public static var noValue = -999
     
     @IBInspectable public var minimumValue: Int {
         get {
@@ -107,13 +107,17 @@ class ScaleControl: UIControl {
     private let scaleView = UIView()
     
     private let tapGestureRecognizer = UITapGestureRecognizer()
+    private let panGestureRecognizer = UIPanGestureRecognizer()
     
     private var value: Int? {
         didSet {
+            self.displayedValue = self.value.flatMap { CGFloat($0) }
             self.updateSelection(animated: false)
             self.setNeedsLayout()
         }
     }
+    
+    private var displayedValue: CGFloat?
     
     private var range: ClosedRange<Int> {
         didSet {
@@ -127,10 +131,13 @@ class ScaleControl: UIControl {
         self.addSubview(self.scaleView)
         
         self.tapGestureRecognizer.addTarget(self, action: #selector(tap(_:)))
-        self.addGestureRecognizer(self.tapGestureRecognizer)
+        self.scaleView.addGestureRecognizer(self.tapGestureRecognizer)
+        
+        self.panGestureRecognizer.addTarget(self, action: #selector(pan(_:)))
+        self.addGestureRecognizer(self.panGestureRecognizer)
         
         self.selectionView.backgroundColor = self.selectionColor
-        self.addSubview(self.selectionView)
+        self.scaleView.addSubview(self.selectionView)
 
         self.configureNumberLabels()
                         
@@ -154,7 +161,7 @@ class ScaleControl: UIControl {
             label.font = self.font
             
             self.numberLabels.append(label)
-            self.insertSubview(label, aboveSubview: self.selectionView)
+            self.scaleView.insertSubview(label, aboveSubview: self.selectionView)
         }
         
         self.layoutNumberLabels()
@@ -197,14 +204,28 @@ class ScaleControl: UIControl {
     }
     
     @objc private func tap(_ sender: UITapGestureRecognizer) {
-        guard let subview = self.hitTest(sender.location(in: self), with: nil), Set(self.numberLabels).contains(subview) else {
-            print("Touch not in number label")
-            return
+        let index = Int(sender.location(in: self.scaleView).x * CGFloat(self.range.count) / self.scaleView.bounds.width)
+        let correspondingValue = self.range.clamp(index + range.lowerBound)
+        
+        if self.value != correspondingValue {
+            self.value = correspondingValue
+            self.sendActions(for: .valueChanged)
         }
+    }
+    
+    @objc private func pan(_ sender: UIPanGestureRecognizer) {
+        let index = Int(sender.location(in: self.scaleView).x * CGFloat(self.range.count) / self.scaleView.bounds.width)
+        let correspondingValue = self.range.clamp(index + range.lowerBound)
         
-        self.value = subview.tag
-        
-        self.sendActions(for: .valueChanged)
+        if let value = self.value, abs(value - correspondingValue) > 1 || self.value == nil {
+            sender.reset()
+        } else {
+            self.value = correspondingValue
+
+            if sender.state == .ended {
+                self.sendActions(for: .valueChanged)
+            }
+        }
     }
 }
 
