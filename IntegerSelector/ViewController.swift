@@ -8,10 +8,12 @@
 import UIKit
 
 class ViewController: UIViewController {
-
+    @IBOutlet weak var scaleControl: ScaleControl!
+    
     override func viewDidLoad() {
         super.viewDidLoad()
-        // Do any additional setup after loading the view.
+
+        self.scaleControl.selectedValue = 5
     }
 
 
