@@ -20,12 +20,12 @@
 		0195BCF229649EFC007C8C0F /* IntegerSelector.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = IntegerSelector.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		0195BCF529649EFC007C8C0F /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		0195BCF729649EFC007C8C0F /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
-		0195BCF929649EFC007C8C0F /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
+		0195BCF929649EFC007C8C0F /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; usesTabs = 1; };
 		0195BCFC29649EFC007C8C0F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
 		0195BCFE29649EFD007C8C0F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		0195BD0129649EFD007C8C0F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		0195BD0329649EFD007C8C0F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		0195BD0929649F52007C8C0F /* ScaleControl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScaleControl.swift; sourceTree = "<group>"; };
+		0195BD0929649F52007C8C0F /* ScaleControl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScaleControl.swift; sourceTree = "<group>"; usesTabs = 1; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -46,6 +46,7 @@
 				0195BCF329649EFC007C8C0F /* Products */,
 			);
 			sourceTree = "<group>";
+			usesTabs = 1;
 		};
 		0195BCF329649EFC007C8C0F /* Products */ = {
 			isa = PBXGroup;

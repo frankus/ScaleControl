@@ -8,12 +8,10 @@
 import UIKit
 
 class ViewController: UIViewController {
-    @IBOutlet weak var scaleControl: ScaleControl!
-    
-    override func viewDidLoad() {
-        super.viewDidLoad()
-    }
-
-
+	@IBOutlet weak var scaleControl: ScaleControl!
+	
+	override func viewDidLoad() {
+		super.viewDidLoad()
+	}
 }
 
