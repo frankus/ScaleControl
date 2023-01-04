@@ -16,7 +16,7 @@ public class ScaleControl: UIControl {
 			return self.range.lowerBound
 		}
 		set {
-			self.range = newValue...self.range.upperBound
+			self.range = min(newValue, self.range.upperBound)...self.range.upperBound
 		}
 	}
 
@@ -25,7 +25,7 @@ public class ScaleControl: UIControl {
 			return self.range.upperBound
 		}
 		set {
-			self.range = self.range.lowerBound...newValue
+			self.range = self.range.lowerBound...max(newValue, self.range.lowerBound)
 		}
 	}
 
@@ -93,13 +93,12 @@ public class ScaleControl: UIControl {
 	override public func layoutSubviews() {
 		super.layoutSubviews()
 
+		let buttonWidth = self.bounds.width / CGFloat(range.count)
+
 		self.layoutNumberLabels()
 
-		let buttonSize = self.numberLabels.first?.bounds.size ?? .zero
-
-		self.scaleView.frame = CGRect(x: 0, y: 0, width: self.bounds.width, height: buttonSize.height)
-
-		self.scaleView.layer.cornerRadius = min(buttonSize.width, buttonSize.height) / 2
+		self.scaleView.frame = CGRect(x: 0, y: 0, width: self.bounds.width, height: self.scaleHeight)
+		self.scaleView.layer.cornerRadius = min(buttonWidth, self.scaleHeight) / 2
 
 		self.updateSelection()
 
@@ -107,6 +106,15 @@ public class ScaleControl: UIControl {
 
 		self.minimumLabel.frame = CGRectMake(6, self.scaleView.frame.maxY + 6, self.bounds.width - 12, self.bounds.height - (self.scaleView.frame.maxY + 6))
 		self.maximumLabel.frame = CGRectMake(6, self.scaleView.frame.maxY + 6, self.bounds.width - 12, self.bounds.height - (self.scaleView.frame.maxY + 6))
+	}
+
+	public override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
+		super.traitCollectionDidChange(previousTraitCollection)
+
+		self.updateScaledValues()
+
+		self.setNeedsLayout()
+		self.invalidateIntrinsicContentSize()
 	}
 
 	public func setSelectedValue(_ selectedValue: Int, animated: Bool) {
@@ -128,9 +136,7 @@ public class ScaleControl: UIControl {
 	}
 	
 	public override func sizeThatFits(_ size: CGSize) -> CGSize {
-		let numberWidth = self.displayScaleRound(size.width / CGFloat(range.count))
-
-		return CGSize(width: size.width, height: numberWidth + max(32, self.minimumLabel.intrinsicContentSize.height) + 6)
+		return CGSize(width: size.width, height: self.scaleHeight + self.descriptionHeight + 6)
 	}
 
 	public override var intrinsicContentSize: CGSize {
@@ -166,6 +172,9 @@ public class ScaleControl: UIControl {
 	private let tapGestureRecognizer = UITapGestureRecognizer()
 	private let panGestureRecognizer = UIPanGestureRecognizer()
 
+	private let numberFontMetrics = UIFontMetrics(forTextStyle: .body)
+	private let descriptionFontMetrics = UIFontMetrics(forTextStyle: .footnote)
+
 	private var value: Int? {
 		didSet {
 			self.updateSelection()
@@ -180,7 +189,17 @@ public class ScaleControl: UIControl {
 		}
 	}
 
+	private var scaleHeight: CGFloat = 32
+	private var descriptionHeight: CGFloat = 32
+
+	private func updateScaledValues() {
+		self.scaleHeight = max(32, self.numberFontMetrics.scaledValue(for: 32, compatibleWith: self.traitCollection))
+		self.descriptionHeight = max(32, self.descriptionFontMetrics.scaledValue(for: 32, compatibleWith: self.traitCollection))
+	}
+
 	private func configureViews() {
+		self.updateScaledValues()
+
 		self.scaleView.backgroundColor = self.scaleColor
 		self.addSubview(self.scaleView)
 
@@ -235,11 +254,11 @@ public class ScaleControl: UIControl {
 
 	private func layoutNumberLabels() {
 		let idealWidth = self.bounds.width / CGFloat(self.range.count)
-		let integralishWidth = self.displayScaleRound(idealWidth)
+		let displayWidth = self.displayScaleRound(idealWidth)
 		var x: CGFloat = 0
 
 		for numberLabel in self.numberLabels {
-			numberLabel.frame = CGRect(x: self.displayScaleRound(x), y: 0, width: integralishWidth, height: integralishWidth)
+			numberLabel.frame = CGRect(x: self.displayScaleRound(x), y: 0, width: displayWidth, height: self.scaleHeight)
 
 			x += idealWidth
 		}

@@ -26,6 +26,7 @@
 		0195BD0129649EFD007C8C0F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		0195BD0329649EFD007C8C0F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		0195BD0929649F52007C8C0F /* ScaleControl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScaleControl.swift; sourceTree = "<group>"; usesTabs = 1; };
+		0195BD0B296518BB007C8C0F /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -42,6 +43,7 @@
 		0195BCE929649EFC007C8C0F = {
 			isa = PBXGroup;
 			children = (
+				0195BD0B296518BB007C8C0F /* README.md */,
 				0195BCF429649EFC007C8C0F /* IntegerSelector */,
 				0195BCF329649EFC007C8C0F /* Products */,
 			);
