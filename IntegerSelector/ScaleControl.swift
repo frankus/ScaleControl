@@ -105,8 +105,8 @@ public class ScaleControl: UIControl {
 
         self.selectionView.layer.cornerRadius = min(self.selectionView.bounds.height, self.selectionView.bounds.width) / 2
         
-        self.minimumLabel.frame = CGRectMake(0, self.scaleView.frame.maxY, self.bounds.width, self.bounds.height - self.scaleView.frame.maxY)
-        self.maximumLabel.frame = CGRectMake(0, self.scaleView.frame.maxY, self.bounds.width, self.bounds.height - self.scaleView.frame.maxY)
+        self.minimumLabel.frame = CGRectMake(6, self.scaleView.frame.maxY + 6, self.bounds.width - 12, self.bounds.height - (self.scaleView.frame.maxY + 6))
+        self.maximumLabel.frame = CGRectMake(6, self.scaleView.frame.maxY + 6, self.bounds.width - 12, self.bounds.height - (self.scaleView.frame.maxY + 6))
     }
     
     public func setSelectedValue(_ selectedValue: Int, animated: Bool) {
@@ -121,8 +121,22 @@ public class ScaleControl: UIControl {
         }
     }
     
-        //public func
+    public override var bounds: CGRect {
+        didSet {
+            self.invalidateIntrinsicContentSize()
+        }
+    }
+    
+    public override func sizeThatFits(_ size: CGSize) -> CGSize {
+        let numberWidth = self.displayScaleRound(size.width / CGFloat(range.count))
         
+        return CGSize(width: size.width, height: numberWidth + max(32, self.minimumLabel.intrinsicContentSize.height) + 6)
+    }
+    
+    public override var intrinsicContentSize: CGSize {
+        return self.sizeThatFits(self.bounds.size)
+    }
+    
     // MARK: - NSCoding
     
     private static let minimumValueKey = "MinimumValue"
@@ -221,11 +235,11 @@ public class ScaleControl: UIControl {
     
     private func layoutNumberLabels() {
         let idealWidth = self.bounds.width / CGFloat(self.range.count)
-        let screenWidth = self.displayScaleRound(idealWidth)
+        let integralishWidth = self.displayScaleRound(idealWidth)
         var x: CGFloat = 0
         
         for numberLabel in self.numberLabels {
-            numberLabel.frame = CGRect(x: self.displayScaleRound(x), y: 0, width: screenWidth, height: screenWidth)
+            numberLabel.frame = CGRect(x: self.displayScaleRound(x), y: 0, width: integralishWidth, height: integralishWidth)
             
             x += idealWidth
         }
@@ -248,13 +262,14 @@ public class ScaleControl: UIControl {
     }
     
     @objc private func tap(_ sender: UITapGestureRecognizer) {
-        if sender.location(in: self).y > self.scaleView.frame.maxY {
+        // TODO: Use hit testing
+        if sender.location(in: self).y > self.minimumLabel.frame.minY {
             // Tapping on description labels increments/decrements the value,
             // or sets it to the extreme if not yet set.
             if sender.location(in: self).x < self.bounds.width / 2 {
-                self.value = self.value.flatMap { self.range.clamp($0 - 1) } ?? self.range.lowerBound
+                self.value = self.range.lowerBound
             } else {
-                self.value = self.value.flatMap { self.range.clamp($0 + 1) } ?? self.range.upperBound
+                self.value = self.range.upperBound
             }
         } else {
             // Tapping on the scale immediately sets to the nearest value.

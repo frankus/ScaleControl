@@ -16,24 +16,21 @@
                         <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
-                            <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="sEk-Vp-4pq" customClass="ScaleControl" customModule="IntegerSelector" customModuleProvider="target">
-                                <rect key="frame" x="8" y="362" width="377" height="128"/>
+                            <view contentMode="scaleToFill" verticalHuggingPriority="249" verticalCompressionResistancePriority="751" translatesAutoresizingMaskIntoConstraints="NO" id="sEk-Vp-4pq" customClass="ScaleControl" customModule="IntegerSelector" customModuleProvider="target">
+                                <rect key="frame" x="8" y="380" width="377" height="92"/>
                                 <color key="backgroundColor" systemColor="systemBackgroundColor"/>
-                                <constraints>
-                                    <constraint firstAttribute="height" constant="128" id="if5-eV-vDP"/>
-                                </constraints>
                                 <userDefinedRuntimeAttributes>
                                     <userDefinedRuntimeAttribute type="number" keyPath="minimumValue">
-                                        <integer key="value" value="-5"/>
+                                        <integer key="value" value="-3"/>
                                     </userDefinedRuntimeAttribute>
                                     <userDefinedRuntimeAttribute type="number" keyPath="maximumValue">
-                                        <integer key="value" value="5"/>
+                                        <integer key="value" value="3"/>
                                     </userDefinedRuntimeAttribute>
                                     <userDefinedRuntimeAttribute type="number" keyPath="selectedValue">
                                         <integer key="value" value="-999"/>
                                     </userDefinedRuntimeAttribute>
-                                    <userDefinedRuntimeAttribute type="string" keyPath="minimumDescription" value="Less"/>
-                                    <userDefinedRuntimeAttribute type="string" keyPath="maximumDescription" value="More"/>
+                                    <userDefinedRuntimeAttribute type="string" keyPath="minimumDescription" value="Not at All"/>
+                                    <userDefinedRuntimeAttribute type="string" keyPath="maximumDescription" value="Totally"/>
                                 </userDefinedRuntimeAttributes>
                             </view>
                         </subviews>
@@ -54,6 +51,11 @@
             <point key="canvasLocation" x="139" y="-2"/>
         </scene>
     </scenes>
+    <designables>
+        <designable name="sEk-Vp-4pq">
+            <size key="intrinsicContentSize" width="377" height="92"/>
+        </designable>
+    </designables>
     <resources>
         <systemColor name="systemBackgroundColor">
             <color white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
