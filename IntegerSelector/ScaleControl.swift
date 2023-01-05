@@ -70,6 +70,19 @@ public class ScaleControl: UIControl {
 
 	@objc dynamic public var descriptionColor: UIColor = .secondaryLabel
 
+	public enum DisplayMode {
+		case horizontal
+		case circular
+		case vertical
+	}
+
+	public var displayMode: DisplayMode = .horizontal {
+		didSet {
+			self.invalidateIntrinsicContentSize()
+			self.setNeedsLayout()
+		}
+	}
+
 	public init(range: ClosedRange<Int>) {
 		self.range = range
 
@@ -96,9 +109,19 @@ public class ScaleControl: UIControl {
 		let buttonWidth = self.bounds.width / CGFloat(range.count)
 
 		self.layoutNumberLabels()
+		self.updateScaleView()
 
-		self.scaleView.frame = CGRect(x: 0, y: 0, width: self.bounds.width, height: self.scaleHeight)
-		self.scaleView.layer.cornerRadius = min(buttonWidth, self.scaleHeight) / 2
+		switch self.displayMode {
+		case .circular:
+			self.scaleView.frame = CGRect(x: 0, y: 0, width: self.bounds.width, height: self.bounds.width)
+
+		case .horizontal:
+			self.scaleView.frame = CGRect(x: 0, y: 0, width: self.bounds.width, height: self.scaleThickness)
+			self.scaleView.layer.cornerRadius = min(buttonWidth, self.scaleThickness) / 2
+
+		case .vertical:
+			self.scaleView.frame = CGRect(x: 0, y: 0, width: self.bounds.width, height: self.scaleThickness * CGFloat(self.range.count))
+		}
 
 		self.updateSelection()
 
@@ -111,10 +134,10 @@ public class ScaleControl: UIControl {
 	public override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
 		super.traitCollectionDidChange(previousTraitCollection)
 
-		self.updateScaledValues()
-
-		self.setNeedsLayout()
-		self.invalidateIntrinsicContentSize()
+		if previousTraitCollection?.preferredContentSizeCategory != self.traitCollection.preferredContentSizeCategory {
+			self.updateScaledValues()
+			self.invalidateIntrinsicContentSize()
+		}
 	}
 
 	public func setSelectedValue(_ selectedValue: Int, animated: Bool) {
@@ -129,29 +152,37 @@ public class ScaleControl: UIControl {
 		}
 	}
 
+	public  func mySizeThatFits(_ size: CGSize) -> CGSize {
+		switch self.displayMode {
+		case .circular:
+			return CGSize(width: UIView.noIntrinsicMetric, height: size.width + self.descriptionHeight + 6)
+
+		case .horizontal:
+			return CGSize(width: UIView.noIntrinsicMetric, height: self.scaleThickness + self.descriptionHeight + 6)
+
+		case .vertical:
+			return CGSize(width: UIView.noIntrinsicMetric, height: self.scaleThickness * CGFloat(self.range.count))
+		}
+	}
+
+	public override var intrinsicContentSize: CGSize {
+		self.evaluateDisplayMode(forWidth: self.bounds.width)
+		return self.mySizeThatFits(self.bounds.size)
+	}
+
 	public override var bounds: CGRect {
+		willSet {
+			self.evaluateDisplayMode(forWidth: newValue.width)
+		}
 		didSet {
 			self.invalidateIntrinsicContentSize()
 		}
 	}
-	
-	public override func sizeThatFits(_ size: CGSize) -> CGSize {
-		return CGSize(width: size.width, height: self.scaleHeight + self.descriptionHeight + 6)
-	}
-
-	public override var intrinsicContentSize: CGSize {
-		return self.sizeThatFits(self.bounds.size)
-	}
 
 	// MARK: - NSCoding
 
-	private static let minimumValueKey = "MinimumValue"
-	private static let maximumValueKey = "MaximumValue"
-	private static let selectedValueKey = "SelectedValue"
-
 	required init?(coder: NSCoder) {
-		self.range = coder.decodeInteger(forKey: Self.minimumValueKey)...coder.decodeInteger(forKey: Self.maximumValueKey)
-		self.value = self.range.clamp(coder.decodeInteger(forKey: Self.selectedValueKey))
+		self.range = -998...999
 
 		super.init(coder: coder)
 
@@ -189,18 +220,75 @@ public class ScaleControl: UIControl {
 		}
 	}
 
-	private var scaleHeight: CGFloat = 32
+	private var scaleThickness: CGFloat = 32
 	private var descriptionHeight: CGFloat = 32
 
 	private func updateScaledValues() {
-		self.scaleHeight = max(32, self.numberFontMetrics.scaledValue(for: 32, compatibleWith: self.traitCollection))
+		self.scaleThickness = max(32, self.numberFontMetrics.scaledValue(for: 32, compatibleWith: self.traitCollection))
 		self.descriptionHeight = max(32, self.descriptionFontMetrics.scaledValue(for: 32, compatibleWith: self.traitCollection))
+	}
+
+	private func evaluateDisplayMode(forWidth width: CGFloat) {
+		let lengthOfScale = self.scaleThickness * CGFloat(self.range.count)
+		let usableCircumference = (width - self.scaleThickness) * CGFloat.pi * 0.75
+
+		// Update display mode based on scale length and round-or-wider buttons.
+		if width >= lengthOfScale {
+			self.displayMode = .horizontal
+		} else if usableCircumference >= lengthOfScale {
+			self.displayMode = .circular
+		} else {
+			self.displayMode = .vertical
+		}
+	}
+
+	private var shapeLayer: ScaleLayer = ScaleLayer()
+
+	private func updateScaleView() {
+		var path: UIBezierPath
+
+		switch self.displayMode {
+			case .circular:
+				let startAngle: CGFloat = 0.75 * .pi
+				let endAngle: CGFloat = 0.25 * .pi;
+
+				let halfWidth = self.bounds.width / 2
+				let center = CGPointMake(halfWidth, halfWidth)
+				let radius: CGFloat = halfWidth - (self.scaleThickness / 2)
+				path = UIBezierPath(arcCenter: center, radius: radius, startAngle: startAngle, endAngle: endAngle, clockwise: true)
+
+			case .horizontal:
+				let start = CGPoint(x: self.scaleThickness / 2, y: self.scaleThickness / 2)
+				let end = CGPoint(x: self.bounds.width - self.scaleThickness / 2, y: self.scaleThickness / 2)
+				path = UIBezierPath()
+				path.move(to: start)
+				path.addLine(to: end)
+
+			case .vertical:
+				let start = CGPoint(x: self.scaleThickness / 2, y: self.scaleThickness / 2)
+				let end = CGPoint(x: self.scaleThickness / 2, y: self.bounds.height - self.scaleThickness / 2)
+				path = UIBezierPath()
+				path.move(to: start)
+				path.addLine(to: end)
+			}
+
+		self.shapeLayer.frame = self.bounds
+		self.shapeLayer.path = path.cgPath
+	}
+
+	private func configureScaleView() {
+		self.shapeLayer.fillColor = UIColor.clear.cgColor
+		self.shapeLayer.strokeColor = self.scaleColor.cgColor
+		self.shapeLayer.lineWidth = self.scaleThickness
+		self.shapeLayer.lineCap = .round
+
+		self.scaleView.layer.addSublayer(self.shapeLayer)
 	}
 
 	private func configureViews() {
 		self.updateScaledValues()
 
-		self.scaleView.backgroundColor = self.scaleColor
+		self.configureScaleView()
 		self.addSubview(self.scaleView)
 
 		self.tapGestureRecognizer.addTarget(self, action: #selector(tap(_:)))
@@ -253,14 +341,44 @@ public class ScaleControl: UIControl {
 	}
 
 	private func layoutNumberLabels() {
-		let idealWidth = self.bounds.width / CGFloat(self.range.count)
-		let displayWidth = self.displayScaleRound(idealWidth)
-		var x: CGFloat = 0
+		switch displayMode {
+		case .horizontal:
+			let idealWidth = self.bounds.width / CGFloat(self.range.count)
+			let displayWidth = self.displayScaleRound(idealWidth)
+			var x: CGFloat = 0
 
-		for numberLabel in self.numberLabels {
-			numberLabel.frame = CGRect(x: self.displayScaleRound(x), y: 0, width: displayWidth, height: self.scaleHeight)
+			for numberLabel in self.numberLabels {
+				numberLabel.frame = CGRect(x: self.displayScaleRound(x), y: 0, width: displayWidth, height: self.scaleThickness)
 
-			x += idealWidth
+				x += idealWidth
+			}
+
+		case .circular:
+			let maxAngle: CGFloat = 0.75 * 2 * .pi // Use 3/4 of a circle.
+			let angleIncrement = maxAngle / CGFloat(self.range.count - 1)
+			let scaleRadius = (self.bounds.width - self.scaleThickness) / 2
+			var angle: CGFloat = 0.75 * .pi // Start at 7:30, end at 4:30.
+
+			for numberLabel in self.numberLabels {
+				let centerX = self.scaleView.bounds.midX + cos(angle) * scaleRadius
+				let centerY = self.scaleView.bounds.midY + sin(angle) * scaleRadius
+				let origin = CGPoint(x: centerX - scaleThickness / 2, y: centerY - scaleThickness / 2)
+				numberLabel.center = CGPoint(x: centerX, y: centerY)
+				numberLabel.bounds = CGRect(origin: .zero, size: CGSize(width: self.scaleThickness, height: self.scaleThickness))
+
+				angle += angleIncrement
+			}
+
+			break
+
+		case .vertical:
+			var y: CGFloat = 0
+
+			for numberLabel in self.numberLabels {
+				numberLabel.frame = CGRect(x: 0, y: y, width: self.scaleThickness, height: self.scaleThickness)
+
+				y += self.scaleThickness
+			}
 		}
 	}
 
@@ -328,5 +446,19 @@ extension UIView {
 private extension ClosedRange {
 	func clamp(_ value: Bound) -> Bound {
 		return Swift.min(Swift.max(lowerBound, value), upperBound)
+	}
+}
+
+private class ScaleLayer: CAShapeLayer {
+	override func action(forKey event: String) -> CAAction? {
+		if event == "path" {
+			let animation = CABasicAnimation(keyPath: event)
+			animation.duration = CATransaction.animationDuration()
+			animation.timingFunction = CATransaction.animationTimingFunction()
+
+			return animation
+		} else {
+			return super.action(forKey: event)
+		}
 	}
 }

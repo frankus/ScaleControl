@@ -16,29 +16,39 @@
                         <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
-                            <view contentMode="scaleToFill" verticalHuggingPriority="249" verticalCompressionResistancePriority="751" translatesAutoresizingMaskIntoConstraints="NO" id="sEk-Vp-4pq" customClass="ScaleControl" customModule="IntegerSelector" customModuleProvider="target">
-                                <rect key="frame" x="8" y="380" width="377" height="92"/>
+                            <view alpha="0.5" contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="1000" translatesAutoresizingMaskIntoConstraints="NO" id="sEk-Vp-4pq" customClass="ScaleControl" customModule="IntegerSelector" customModuleProvider="target">
+                                <rect key="frame" x="8" y="391" width="377" height="70"/>
                                 <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                                 <userDefinedRuntimeAttributes>
                                     <userDefinedRuntimeAttribute type="number" keyPath="minimumValue">
-                                        <integer key="value" value="-3"/>
+                                        <integer key="value" value="0"/>
                                     </userDefinedRuntimeAttribute>
                                     <userDefinedRuntimeAttribute type="number" keyPath="maximumValue">
-                                        <integer key="value" value="3"/>
+                                        <integer key="value" value="10"/>
                                     </userDefinedRuntimeAttribute>
                                     <userDefinedRuntimeAttribute type="number" keyPath="selectedValue">
-                                        <integer key="value" value="-999"/>
+                                        <integer key="value" value="1"/>
                                     </userDefinedRuntimeAttribute>
-                                    <userDefinedRuntimeAttribute type="string" keyPath="minimumDescription" value="Not at All"/>
-                                    <userDefinedRuntimeAttribute type="string" keyPath="maximumDescription" value="Totally"/>
+                                    <userDefinedRuntimeAttribute type="string" keyPath="minimumDescription" value="Not at All Likely"/>
+                                    <userDefinedRuntimeAttribute type="string" keyPath="maximumDescription" value="Extremely Likely"/>
                                 </userDefinedRuntimeAttributes>
                             </view>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" textAlignment="center" lineBreakMode="tailTruncation" numberOfLines="0" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="vJG-kg-xie" customClass="TestLabel" customModule="IntegerSelector" customModuleProvider="target">
+                                <rect key="frame" x="0.0" y="284" width="393" height="284.33333333333326"/>
+                                <mutableString key="text">The fromValue and toValue of the animation are typed as Any; it is up to us to make sure the type is correct. (If we don’t, there won’t be a compile error, but the animation probably won’t work.) A layer’s transform is a CATransform3D; so our fromValue and toValue must be CATransform3D values. Expressing a rotation in the plane of the screen as a CATransform3D is a bit more elaborate than expressing it as a CGAffineTransform, but not much; you just have to know what the extra parameters mean (they are the x, y, and z components of a vector around which the rotation will take place, but I’m not going to explain any further, so just trust me on this one).</mutableString>
+                                <fontDescription key="fontDescription" type="system" pointSize="17"/>
+                                <nil key="textColor"/>
+                                <nil key="highlightedColor"/>
+                            </label>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="6Tk-OE-BBY"/>
                         <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                         <constraints>
+                            <constraint firstItem="6Tk-OE-BBY" firstAttribute="trailing" secondItem="vJG-kg-xie" secondAttribute="trailing" id="47Q-pu-x8p"/>
                             <constraint firstItem="sEk-Vp-4pq" firstAttribute="centerY" secondItem="8bC-Xf-vdC" secondAttribute="centerY" id="SRC-ue-Upi"/>
                             <constraint firstItem="6Tk-OE-BBY" firstAttribute="trailing" secondItem="sEk-Vp-4pq" secondAttribute="trailing" constant="8" id="bYZ-Ih-4tR"/>
+                            <constraint firstItem="vJG-kg-xie" firstAttribute="leading" secondItem="6Tk-OE-BBY" secondAttribute="leading" id="dxa-Rp-A3N"/>
+                            <constraint firstItem="vJG-kg-xie" firstAttribute="centerY" secondItem="8bC-Xf-vdC" secondAttribute="centerY" id="lXw-Cl-ydN"/>
                             <constraint firstItem="sEk-Vp-4pq" firstAttribute="leading" secondItem="6Tk-OE-BBY" secondAttribute="leading" constant="8" id="yce-8w-IJZ"/>
                         </constraints>
                     </view>
@@ -53,7 +63,7 @@
     </scenes>
     <designables>
         <designable name="sEk-Vp-4pq">
-            <size key="intrinsicContentSize" width="377" height="92"/>
+            <size key="intrinsicContentSize" width="-1" height="70"/>
         </designable>
     </designables>
     <resources>
