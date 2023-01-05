@@ -17,6 +17,7 @@ public class ScaleControl: UIControl {
 		}
 		set {
 			self.range = min(newValue, self.range.upperBound)...self.range.upperBound
+			self.evaluateDisplayMode()
 		}
 	}
 
@@ -26,6 +27,7 @@ public class ScaleControl: UIControl {
 		}
 		set {
 			self.range = self.range.lowerBound...max(newValue, self.range.lowerBound)
+			self.evaluateDisplayMode()
 		}
 	}
 
@@ -78,8 +80,9 @@ public class ScaleControl: UIControl {
 
 	public var displayMode: DisplayMode = .horizontal {
 		didSet {
-			self.invalidateIntrinsicContentSize()
-			self.setNeedsLayout()
+			if self.displayMode != oldValue {
+				self.invalidateIntrinsicContentSize()
+			}
 		}
 	}
 
@@ -108,7 +111,6 @@ public class ScaleControl: UIControl {
 
 		let buttonWidth = self.bounds.width / CGFloat(range.count)
 
-		self.layoutNumberLabels()
 		self.updateScaleView()
 
 		switch self.displayMode {
@@ -123,21 +125,23 @@ public class ScaleControl: UIControl {
 			self.scaleView.frame = CGRect(x: 0, y: 0, width: self.bounds.width, height: self.scaleThickness * CGFloat(self.range.count))
 		}
 
+		self.layoutNumberLabels()
 		self.updateSelection()
 
 		self.selectionView.layer.cornerRadius = min(self.selectionView.bounds.height, self.selectionView.bounds.width) / 2
 
-		self.minimumLabel.frame = CGRectMake(6, self.scaleView.frame.maxY + 6, self.bounds.width - 12, self.bounds.height - (self.scaleView.frame.maxY + 6))
-		self.maximumLabel.frame = CGRectMake(6, self.scaleView.frame.maxY + 6, self.bounds.width - 12, self.bounds.height - (self.scaleView.frame.maxY + 6))
+		let xInset: CGFloat = self.scaleThickness / 2
+		let yInset: CGFloat = 6
+		let labelSize = CGSize(width: self.scaleView.frame.midX - xInset, height: self.bounds.height - (self.scaleView.frame.maxY + 6))
+
+		self.minimumLabel.frame = CGRect(origin: CGPoint(x: xInset, y: self.scaleView.frame.maxY + yInset), size: labelSize)
+		self.maximumLabel.frame = CGRect(origin: CGPoint(x: self.scaleView.frame.midX, y: self.scaleView.frame.maxY + yInset), size: labelSize)
 	}
 
 	public override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
 		super.traitCollectionDidChange(previousTraitCollection)
 
-		if previousTraitCollection?.preferredContentSizeCategory != self.traitCollection.preferredContentSizeCategory {
-			self.updateScaledValues()
-			self.invalidateIntrinsicContentSize()
-		}
+		self.evaluateDisplayMode()
 	}
 
 	public func setSelectedValue(_ selectedValue: Int, animated: Bool) {
@@ -152,10 +156,10 @@ public class ScaleControl: UIControl {
 		}
 	}
 
-	public  func mySizeThatFits(_ size: CGSize) -> CGSize {
+	public override var intrinsicContentSize: CGSize {
 		switch self.displayMode {
 		case .circular:
-			return CGSize(width: UIView.noIntrinsicMetric, height: size.width + self.descriptionHeight + 6)
+			return CGSize(width: UIView.noIntrinsicMetric, height: 300 + self.descriptionHeight + 6)
 
 		case .horizontal:
 			return CGSize(width: UIView.noIntrinsicMetric, height: self.scaleThickness + self.descriptionHeight + 6)
@@ -165,19 +169,11 @@ public class ScaleControl: UIControl {
 		}
 	}
 
-	public override var intrinsicContentSize: CGSize {
-		self.evaluateDisplayMode(forWidth: self.bounds.width)
-		return self.mySizeThatFits(self.bounds.size)
-	}
-
-	public override var bounds: CGRect {
-		willSet {
-			self.evaluateDisplayMode(forWidth: newValue.width)
-		}
-		didSet {
-			self.invalidateIntrinsicContentSize()
-		}
-	}
+//	public override var bounds: CGRect {
+//		didSet {
+//			self.invalidateIntrinsicContentSize()
+//		}
+//	}
 
 	// MARK: - NSCoding
 
@@ -228,12 +224,17 @@ public class ScaleControl: UIControl {
 		self.descriptionHeight = max(32, self.descriptionFontMetrics.scaledValue(for: 32, compatibleWith: self.traitCollection))
 	}
 
-	private func evaluateDisplayMode(forWidth width: CGFloat) {
+	private func evaluateDisplayMode() {
+		self.updateScaledValues()
+
+		let isPortraitPhone = traitCollection.horizontalSizeClass == .compact && traitCollection.verticalSizeClass == .regular
+		let nominalWidth: CGFloat = isPortraitPhone ? 300 : 600
+
 		let lengthOfScale = self.scaleThickness * CGFloat(self.range.count)
-		let usableCircumference = (width - self.scaleThickness) * CGFloat.pi * 0.75
+		let usableCircumference = (nominalWidth - self.scaleThickness) * CGFloat.pi * 0.75
 
 		// Update display mode based on scale length and round-or-wider buttons.
-		if width >= lengthOfScale {
+		if nominalWidth >= lengthOfScale {
 			self.displayMode = .horizontal
 		} else if usableCircumference >= lengthOfScale {
 			self.displayMode = .circular
@@ -286,7 +287,7 @@ public class ScaleControl: UIControl {
 	}
 
 	private func configureViews() {
-		self.updateScaledValues()
+		self.evaluateDisplayMode()
 
 		self.configureScaleView()
 		self.addSubview(self.scaleView)
@@ -306,12 +307,14 @@ public class ScaleControl: UIControl {
 		self.minimumLabel.textColor = self.descriptionColor
 		self.minimumLabel.adjustsFontForContentSizeCategory = true
 		self.minimumLabel.textAlignment = .left
+		self.minimumLabel.autoresizingMask = [.flexibleWidth, .flexibleRightMargin]
 		self.addSubview(self.minimumLabel)
 
 		self.maximumLabel.font = self.descriptionFont
 		self.maximumLabel.textColor = self.descriptionColor
 		self.maximumLabel.adjustsFontForContentSizeCategory = true
 		self.maximumLabel.textAlignment = .right
+		self.minimumLabel.autoresizingMask = [.flexibleWidth, .flexibleLeftMargin]
 		self.addSubview(self.maximumLabel)
 
 		self.updateSelection()
@@ -362,7 +365,6 @@ public class ScaleControl: UIControl {
 			for numberLabel in self.numberLabels {
 				let centerX = self.scaleView.bounds.midX + cos(angle) * scaleRadius
 				let centerY = self.scaleView.bounds.midY + sin(angle) * scaleRadius
-				let origin = CGPoint(x: centerX - scaleThickness / 2, y: centerY - scaleThickness / 2)
 				numberLabel.center = CGPoint(x: centerX, y: centerY)
 				numberLabel.bounds = CGRect(origin: .zero, size: CGSize(width: self.scaleThickness, height: self.scaleThickness))
 
@@ -451,10 +453,20 @@ private extension ClosedRange {
 
 private class ScaleLayer: CAShapeLayer {
 	override func action(forKey event: String) -> CAAction? {
-		if event == "path" {
+		if event == "path", let boundsAnimation = super.animation(forKey: "bounds") as? CABasicAnimation {
 			let animation = CABasicAnimation(keyPath: event)
-			animation.duration = CATransaction.animationDuration()
-			animation.timingFunction = CATransaction.animationTimingFunction()
+			animation.fromValue = path
+			// Copy values from existing action
+			animation.autoreverses = boundsAnimation.autoreverses
+			animation.beginTime = boundsAnimation.beginTime
+			animation.delegate = boundsAnimation.delegate
+			animation.duration = boundsAnimation.duration
+			animation.fillMode = boundsAnimation.fillMode
+			animation.repeatCount = boundsAnimation.repeatCount
+			animation.repeatDuration = boundsAnimation.repeatDuration
+			animation.speed = boundsAnimation.speed
+			animation.timingFunction = boundsAnimation.timingFunction
+			animation.timeOffset = boundsAnimation.timeOffset
 
 			return animation
 		} else {
