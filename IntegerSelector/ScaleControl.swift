@@ -244,10 +244,8 @@ public class ScaleControl: UIControl {
 	private var scaleViewAspectConstraint = NSLayoutConstraint()
 	private var scaleViewHeightConstraint = NSLayoutConstraint()
 
-	private var selectionViewWidthConstraint = NSLayoutConstraint()
-	private var selectionViewHeightConstraint = NSLayoutConstraint()
-	private var selectionViewCenterXConstraint = NSLayoutConstraint()
-	private var selectionViewCenterYConstraint = NSLayoutConstraint()
+	private var selectionViewSizeConstraints = [NSLayoutConstraint]()
+	private var selectionViewPositionConstraints = [NSLayoutConstraint()]
 
 	private var numberLabelWidthConstraints = [NSLayoutConstraint]()
 	private var numberLabelHeightConstraints = [NSLayoutConstraint]()
@@ -291,9 +289,6 @@ public class ScaleControl: UIControl {
 		self.scaleViewAspectConstraint = self.scaleView.heightAnchor.constraint(equalTo: self.scaleView.widthAnchor, multiplier: 1/*(1 + cos(.pi / 4)) / 2 */, constant: self.scaleThickness / 2)
 		self.scaleViewHeightConstraint = self.scaleView.heightAnchor.constraint(equalToConstant: self.scaleThickness)
 
-		self.selectionViewWidthConstraint = self.selectionView.widthAnchor.constraint(equalToConstant: self.scaleThickness)
-		self.selectionViewHeightConstraint = self.selectionView.heightAnchor.constraint(equalToConstant: self.scaleThickness)
-
 		NSLayoutConstraint.activate([
 			self.scaleView.topAnchor.constraint(equalTo: self.topAnchor),
 			self.scaleView.leadingAnchor.constraint(equalTo: self.leadingAnchor),
@@ -308,10 +303,14 @@ public class ScaleControl: UIControl {
 
 			self.bottomAnchor.constraint(equalTo: self.minimumLabel.bottomAnchor),
 			self.maximumLabel.bottomAnchor.constraint(equalTo: self.minimumLabel.bottomAnchor),
-
-			self.selectionViewWidthConstraint,
-			self.selectionViewHeightConstraint
 		])
+
+		self.selectionViewSizeConstraints = [
+			self.selectionView.widthAnchor.constraint(equalToConstant: self.scaleThickness),
+			self.selectionView.heightAnchor.constraint(equalToConstant: self.scaleThickness)
+		]
+
+		NSLayoutConstraint.activate(self.selectionViewSizeConstraints)
 
 		self.updateSelection()
 	}
@@ -345,13 +344,13 @@ public class ScaleControl: UIControl {
 			widthConstraint.constant = self.scaleThickness
 		}
 
-		self.selectionViewWidthConstraint.constant = self.scaleThickness
-
 		for heightConstraint in self.numberLabelHeightConstraints {
 			heightConstraint.constant = self.scaleThickness
 		}
 
-		self.selectionViewWidthConstraint.constant = self.scaleThickness
+		for sizeConstraint in selectionViewSizeConstraints {
+			sizeConstraint.constant = self.scaleThickness
+		}
 
 		// TODO: update radial constraint constants for scale thickness
 
@@ -440,37 +439,74 @@ public class ScaleControl: UIControl {
 				label.textColor = label == selectedLabel ? self.selectedNumberColor : self.numberColor
 			}
 
-			self.selectionView.removeConstraint(self.selectionViewCenterXConstraint)
-			self.selectionView.removeConstraint(self.selectionViewCenterYConstraint)
-
-			NSLayoutConstraint.activate([
+			self.scaleView.removeConstraints(self.selectionViewPositionConstraints)
+			
+			self.selectionViewPositionConstraints = [
 				self.selectionView.centerXAnchor.constraint(equalTo: selectedLabel.centerXAnchor),
 				self.selectionView.centerYAnchor.constraint(equalTo: selectedLabel.centerYAnchor)
-			])
+			]
+
+			NSLayoutConstraint.activate(self.selectionViewPositionConstraints)
 		} else {
 			self.selectionView.isHidden = true
 		}
 	}
 
 	@objc private func tap(_ sender: UITapGestureRecognizer) {
-		// TODO: Use hit testing
-		if sender.location(in: self).y > self.minimumLabel.frame.minY {
-			// Tapping on description labels increments/decrements the value,
-			// or sets it to the extreme if not yet set.
-			if sender.location(in: self).x < self.bounds.width / 2 {
-				self.value = self.range.lowerBound
+		// TODO: Use hit testing?
+		if sender.location(in: self).y <= self.minimumLabel.frame.minY {
+			if let index = self.findIndex(for: sender.location(in: self.scaleView)) {
+				let correspondingValue = self.range.clamp(index + range.lowerBound)
+
+				if self.value != correspondingValue {
+					self.value = correspondingValue
+					self.sendActions(for: .valueChanged)
+				}
+			}
+		}
+	}
+
+	private func findIndex(for location: CGPoint) -> Int? {
+		let xFraction = location.x / self.scaleView.bounds.width
+		let yFraction = location.y / self.scaleView.bounds.height
+
+		switch self.displayMode {
+		case .horizontal:
+			return self.findLinearIndex(axisFraction: xFraction, offAxisFraction: yFraction)
+
+		case .circular:
+			return self.findCircularIndex(for: CGPoint(x: xFraction, y: yFraction))
+
+		case .vertical:
+			return self.findLinearIndex(axisFraction: yFraction, offAxisFraction: xFraction)
+
+		}
+	}
+
+	private func findLinearIndex(axisFraction: CGFloat, offAxisFraction: CGFloat) -> Int? {
+		if offAxisFraction > -0.2 && offAxisFraction < 1.2 {
+			return Int(axisFraction * CGFloat(self.range.count))
+		} else {
+			return nil
+		}
+	}
+
+	private func findCircularIndex(for fraction: CGPoint) -> Int? {
+		let point = CGPoint(x: fraction.x * 2 - 1, y: fraction.y * 2 - 1)
+		let radius = sqrt(point.x * point.x + point.y * point.y)
+
+		if radius > 0.5 && radius < 1.2 {
+			let angleFromVertical = atan2(point.x, -point.y)
+			let angleFromScaleStart = angleFromVertical + 0.75 * .pi
+			let segmentSize = (1.5 * .pi) / (CGFloat(self.range.count) - 1)
+
+			if angleFromScaleStart > -segmentSize / 2 && angleFromScaleStart < 1.5 * .pi + segmentSize / 2 {
+				return Int(round(angleFromScaleStart / (1.5 * .pi) * (CGFloat(self.range.count) - 1)))
 			} else {
-				self.value = self.range.upperBound
+				return nil
 			}
 		} else {
-			// Tapping on the scale immediately sets to the nearest value.
-			let index = Int(sender.location(in: self.scaleView).x * CGFloat(self.range.count) / self.scaleView.bounds.width)
-			let correspondingValue = self.range.clamp(index + range.lowerBound)
-
-			if self.value != correspondingValue {
-				self.value = correspondingValue
-				self.sendActions(for: .valueChanged)
-			}
+			return nil
 		}
 	}
 
