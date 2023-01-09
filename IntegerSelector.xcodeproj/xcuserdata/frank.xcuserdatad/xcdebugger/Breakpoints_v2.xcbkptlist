@@ -199,16 +199,32 @@
       <BreakpointProxy
          BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
          <BreakpointContent
-            uuid = "C1876C3B-8D71-4ED0-8CC7-A974984612D5"
-            shouldBeEnabled = "No"
+            uuid = "74251587-557F-40E2-990A-9CE3A045E211"
+            shouldBeEnabled = "Yes"
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "IntegerSelector/ScaleControl.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "137"
-            endingLineNumber = "137"
-            landmarkName = "layoutSubviews()"
+            startingLineNumber = "224"
+            endingLineNumber = "224"
+            landmarkName = "updateScaleView()"
+            landmarkType = "7">
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "60DDAD3E-3D84-4696-BF1D-8AE545669B43"
+            shouldBeEnabled = "Yes"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "IntegerSelector/ScaleControl.swift"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "443"
+            endingLineNumber = "443"
+            landmarkName = "updateSelection()"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>

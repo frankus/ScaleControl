@@ -109,33 +109,7 @@ public class ScaleControl: UIControl {
 	override public func layoutSubviews() {
 		super.layoutSubviews()
 
-		let buttonWidth = self.bounds.width / CGFloat(range.count)
-
-		self.updateScaleView()
-
-		switch self.displayMode {
-		case .circular:
-			self.scaleView.frame = CGRect(x: 0, y: 0, width: self.bounds.width, height: self.bounds.width)
-
-		case .horizontal:
-			self.scaleView.frame = CGRect(x: 0, y: 0, width: self.bounds.width, height: self.scaleThickness)
-			self.scaleView.layer.cornerRadius = min(buttonWidth, self.scaleThickness) / 2
-
-		case .vertical:
-			self.scaleView.frame = CGRect(x: 0, y: 0, width: self.bounds.width, height: self.scaleThickness * CGFloat(self.range.count))
-		}
-
-		self.layoutNumberLabels()
-		self.updateSelection()
-
 		self.selectionView.layer.cornerRadius = min(self.selectionView.bounds.height, self.selectionView.bounds.width) / 2
-
-		let xInset: CGFloat = self.scaleThickness / 2
-		let yInset: CGFloat = 6
-		let labelSize = CGSize(width: self.scaleView.frame.midX - xInset, height: self.bounds.height - (self.scaleView.frame.maxY + 6))
-
-		self.minimumLabel.frame = CGRect(origin: CGPoint(x: xInset, y: self.scaleView.frame.maxY + yInset), size: labelSize)
-		self.maximumLabel.frame = CGRect(origin: CGPoint(x: self.scaleView.frame.midX, y: self.scaleView.frame.maxY + yInset), size: labelSize)
 	}
 
 	public override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
@@ -155,25 +129,6 @@ public class ScaleControl: UIControl {
 			updateBlock()
 		}
 	}
-
-	public override var intrinsicContentSize: CGSize {
-		switch self.displayMode {
-		case .circular:
-			return CGSize(width: UIView.noIntrinsicMetric, height: 300 + self.descriptionHeight + 6)
-
-		case .horizontal:
-			return CGSize(width: UIView.noIntrinsicMetric, height: self.scaleThickness + self.descriptionHeight + 6)
-
-		case .vertical:
-			return CGSize(width: UIView.noIntrinsicMetric, height: self.scaleThickness * CGFloat(self.range.count))
-		}
-	}
-
-//	public override var bounds: CGRect {
-//		didSet {
-//			self.invalidateIntrinsicContentSize()
-//		}
-//	}
 
 	// MARK: - NSCoding
 
@@ -286,10 +241,25 @@ public class ScaleControl: UIControl {
 		self.scaleView.layer.addSublayer(self.shapeLayer)
 	}
 
+	private var scaleViewAspectConstraint = NSLayoutConstraint()
+	private var scaleViewHeightConstraint = NSLayoutConstraint()
+
+	private var selectionViewWidthConstraint = NSLayoutConstraint()
+	private var selectionViewHeightConstraint = NSLayoutConstraint()
+	private var selectionViewCenterXConstraint = NSLayoutConstraint()
+	private var selectionViewCenterYConstraint = NSLayoutConstraint()
+
+	private var numberLabelWidthConstraints = [NSLayoutConstraint]()
+	private var numberLabelHeightConstraints = [NSLayoutConstraint]()
+	private var horizontalConstraints = [NSLayoutConstraint]()
+	private var circularConstraints = [NSLayoutConstraint]()
+	private var verticalConstraints = [NSLayoutConstraint]()
+
 	private func configureViews() {
 		self.evaluateDisplayMode()
 
 		self.configureScaleView()
+		self.scaleView.translatesAutoresizingMaskIntoConstraints = false
 		self.addSubview(self.scaleView)
 
 		self.tapGestureRecognizer.addTarget(self, action: #selector(tap(_:)))
@@ -299,6 +269,7 @@ public class ScaleControl: UIControl {
 		self.addGestureRecognizer(self.panGestureRecognizer)
 
 		self.selectionView.backgroundColor = self.selectionColor
+		self.selectionView.translatesAutoresizingMaskIntoConstraints = false
 		self.scaleView.addSubview(self.selectionView)
 
 		self.configureNumberLabels()
@@ -307,25 +278,124 @@ public class ScaleControl: UIControl {
 		self.minimumLabel.textColor = self.descriptionColor
 		self.minimumLabel.adjustsFontForContentSizeCategory = true
 		self.minimumLabel.textAlignment = .left
-		self.minimumLabel.autoresizingMask = [.flexibleWidth, .flexibleRightMargin]
+		self.minimumLabel.translatesAutoresizingMaskIntoConstraints = false
 		self.addSubview(self.minimumLabel)
 
 		self.maximumLabel.font = self.descriptionFont
 		self.maximumLabel.textColor = self.descriptionColor
 		self.maximumLabel.adjustsFontForContentSizeCategory = true
 		self.maximumLabel.textAlignment = .right
-		self.minimumLabel.autoresizingMask = [.flexibleWidth, .flexibleLeftMargin]
+		self.maximumLabel.translatesAutoresizingMaskIntoConstraints = false
 		self.addSubview(self.maximumLabel)
+
+		self.scaleViewAspectConstraint = self.scaleView.heightAnchor.constraint(equalTo: self.scaleView.widthAnchor, multiplier: 1/*(1 + cos(.pi / 4)) / 2 */, constant: self.scaleThickness / 2)
+		self.scaleViewHeightConstraint = self.scaleView.heightAnchor.constraint(equalToConstant: self.scaleThickness)
+
+		self.selectionViewWidthConstraint = self.selectionView.widthAnchor.constraint(equalToConstant: self.scaleThickness)
+		self.selectionViewHeightConstraint = self.selectionView.heightAnchor.constraint(equalToConstant: self.scaleThickness)
+
+		NSLayoutConstraint.activate([
+			self.scaleView.topAnchor.constraint(equalTo: self.topAnchor),
+			self.scaleView.leadingAnchor.constraint(equalTo: self.leadingAnchor),
+			self.trailingAnchor.constraint(equalTo: self.scaleView.trailingAnchor),
+
+			self.minimumLabel.topAnchor.constraint(equalToSystemSpacingBelow: self.scaleView.bottomAnchor, multiplier: 1),
+			self.maximumLabel.topAnchor.constraint(equalTo: self.minimumLabel.topAnchor),
+
+			self.minimumLabel.leadingAnchor.constraint(equalToSystemSpacingAfter: self.leadingAnchor, multiplier: 1),
+			self.maximumLabel.leadingAnchor.constraint(greaterThanOrEqualToSystemSpacingAfter: self.minimumLabel.trailingAnchor, multiplier: 1),
+			self.trailingAnchor.constraint(equalToSystemSpacingAfter: self.maximumLabel.trailingAnchor, multiplier: 1),
+
+			self.bottomAnchor.constraint(equalTo: self.minimumLabel.bottomAnchor),
+			self.maximumLabel.bottomAnchor.constraint(equalTo: self.minimumLabel.bottomAnchor),
+
+			self.selectionViewWidthConstraint,
+			self.selectionViewHeightConstraint
+		])
 
 		self.updateSelection()
 	}
 
+	public override func updateConstraints() {
+		super.updateConstraints()
+
+		self.evaluateDisplayMode()
+
+		switch self.displayMode {
+		case .circular:
+			self.scaleViewHeightConstraint.isActive = false
+			self.scaleViewAspectConstraint.isActive = true
+
+			self.scaleViewAspectConstraint.constant = self.scaleThickness / 2
+
+		case .horizontal:
+			self.scaleViewHeightConstraint.isActive = true
+			self.scaleViewAspectConstraint.isActive = false
+
+			self.scaleViewHeightConstraint.constant = self.scaleThickness
+
+		case .vertical:
+			self.scaleViewHeightConstraint.isActive = true
+			self.scaleViewAspectConstraint.isActive = false
+
+			self.scaleViewHeightConstraint.constant = self.scaleThickness * CGFloat(self.range.count)
+		}
+
+		for widthConstraint in self.numberLabelWidthConstraints {
+			widthConstraint.constant = self.scaleThickness
+		}
+
+		self.selectionViewWidthConstraint.constant = self.scaleThickness
+
+		for heightConstraint in self.numberLabelHeightConstraints {
+			heightConstraint.constant = self.scaleThickness
+		}
+
+		self.selectionViewWidthConstraint.constant = self.scaleThickness
+
+		// TODO: update radial constraint constants for scale thickness
+
+		switch displayMode {
+		case .horizontal:
+			NSLayoutConstraint.deactivate(self.circularConstraints)
+			NSLayoutConstraint.deactivate(self.verticalConstraints)
+			NSLayoutConstraint.activate(self.horizontalConstraints)
+
+		case .circular:
+			NSLayoutConstraint.deactivate(self.horizontalConstraints)
+			NSLayoutConstraint.deactivate(self.verticalConstraints)
+			NSLayoutConstraint.activate(self.circularConstraints)
+
+		case .vertical:
+			NSLayoutConstraint.deactivate(self.circularConstraints)
+			NSLayoutConstraint.deactivate(self.horizontalConstraints)
+			NSLayoutConstraint.activate(self.verticalConstraints)
+		}
+	}
+
 	private func configureNumberLabels() {
+		guard range.lowerBound > -998 && range.upperBound < 999 else {
+			return
+		}
+
 		for numberLabel in self.numberLabels {
 			numberLabel.removeFromSuperview()
 		}
 
 		self.numberLabels.removeAll()
+
+		self.numberLabelWidthConstraints.removeAll()
+		self.numberLabelHeightConstraints.removeAll()
+		self.horizontalConstraints.removeAll()
+		self.circularConstraints.removeAll()
+		self.verticalConstraints.removeAll()
+
+		let fractionalIncrement = 2.0 / CGFloat(self.range.count)
+		var fraction = fractionalIncrement / 2
+
+		let maxAngle: CGFloat = 0.75 * 2 * .pi // Use 3/4 of a circle.
+		let angleIncrement = maxAngle / CGFloat(self.range.count - 1)
+		var angle: CGFloat = 0.75 * .pi // Start at 7:30, end at 4:30.
 
 		for index in self.range {
 			let label = UILabel(frame: .zero)
@@ -335,52 +405,28 @@ public class ScaleControl: UIControl {
 			label.isUserInteractionEnabled = true
 			label.adjustsFontForContentSizeCategory = true
 			label.font = self.numberFont
+			label.translatesAutoresizingMaskIntoConstraints = false
 
 			self.numberLabels.append(label)
 			self.scaleView.insertSubview(label, aboveSubview: self.selectionView)
-		}
 
-		self.layoutNumberLabels()
-	}
+			self.numberLabelWidthConstraints.append(label.widthAnchor.constraint(equalToConstant: self.scaleThickness))
+			self.numberLabelHeightConstraints.append(label.heightAnchor.constraint(equalToConstant: self.scaleThickness))
 
-	private func layoutNumberLabels() {
-		switch displayMode {
-		case .horizontal:
-			let idealWidth = self.bounds.width / CGFloat(self.range.count)
-			let displayWidth = self.displayScaleRound(idealWidth)
-			var x: CGFloat = 0
+			self.horizontalConstraints.append(NSLayoutConstraint(item: label, attribute: .centerX, relatedBy: .equal, toItem: self.scaleView, attribute: .centerX, multiplier: fraction, constant: 0))
 
-			for numberLabel in self.numberLabels {
-				numberLabel.frame = CGRect(x: self.displayScaleRound(x), y: 0, width: displayWidth, height: self.scaleThickness)
+			self.horizontalConstraints.append(NSLayoutConstraint(item: label, attribute: .centerY, relatedBy: .equal, toItem: self.scaleView, attribute: .centerY, multiplier: 1, constant: 0))
 
-				x += idealWidth
-			}
+			self.verticalConstraints.append(NSLayoutConstraint(item: label, attribute: .centerX, relatedBy: .equal, toItem: self.scaleView, attribute: .centerX, multiplier: 1, constant: 0))
 
-		case .circular:
-			let maxAngle: CGFloat = 0.75 * 2 * .pi // Use 3/4 of a circle.
-			let angleIncrement = maxAngle / CGFloat(self.range.count - 1)
-			let scaleRadius = (self.bounds.width - self.scaleThickness) / 2
-			var angle: CGFloat = 0.75 * .pi // Start at 7:30, end at 4:30.
+			self.verticalConstraints.append(NSLayoutConstraint(item: label, attribute: .centerY, relatedBy: .equal, toItem: self.scaleView, attribute: .centerY, multiplier: fraction, constant: 0))
 
-			for numberLabel in self.numberLabels {
-				let centerX = self.scaleView.bounds.midX + cos(angle) * scaleRadius
-				let centerY = self.scaleView.bounds.midY + sin(angle) * scaleRadius
-				numberLabel.center = CGPoint(x: centerX, y: centerY)
-				numberLabel.bounds = CGRect(origin: .zero, size: CGSize(width: self.scaleThickness, height: self.scaleThickness))
+			self.circularConstraints.append(NSLayoutConstraint(item: label, attribute: .centerX, relatedBy: .equal, toItem: self.scaleView, attribute: .centerX, multiplier: 1 + cos(angle), constant: -scaleThickness / 2 * cos(angle)))
 
-				angle += angleIncrement
-			}
+			self.circularConstraints.append(NSLayoutConstraint(item: label, attribute: .centerY, relatedBy: .equal, toItem: self.scaleView, attribute: .centerY, multiplier: 1 + sin(angle) + 0.0001, constant: -scaleThickness / 2 * sin(angle)))
 
-			break
-
-		case .vertical:
-			var y: CGFloat = 0
-
-			for numberLabel in self.numberLabels {
-				numberLabel.frame = CGRect(x: 0, y: y, width: self.scaleThickness, height: self.scaleThickness)
-
-				y += self.scaleThickness
-			}
+			fraction += fractionalIncrement
+			angle += angleIncrement
 		}
 	}
 
@@ -394,7 +440,13 @@ public class ScaleControl: UIControl {
 				label.textColor = label == selectedLabel ? self.selectedNumberColor : self.numberColor
 			}
 
-			self.selectionView.frame = selectedLabel.frame.insetBy(dx: self.selectorInset, dy: self.selectorInset)
+			self.selectionView.removeConstraint(self.selectionViewCenterXConstraint)
+			self.selectionView.removeConstraint(self.selectionViewCenterYConstraint)
+
+			NSLayoutConstraint.activate([
+				self.selectionView.centerXAnchor.constraint(equalTo: selectedLabel.centerXAnchor),
+				self.selectionView.centerYAnchor.constraint(equalTo: selectedLabel.centerYAnchor)
+			])
 		} else {
 			self.selectionView.isHidden = true
 		}
