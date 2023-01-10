@@ -5,8 +5,6 @@
 //  Created by Frank Schmitt on 2023-01-03.
 //
 
-// TODO: Alignment Rect?
-
 import UIKit
 
 @IBDesignable

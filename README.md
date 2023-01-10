@@ -1,12 +1,5 @@
-#  TODO
+# ScaleControl
 
-- Display modes
-  - Horizontal
-  - Circular
-  - Vertical
-  - Convert background view to path from center of min label to center of max label
+## A flexible control for selecting an integer from a range of up to about a dozen.
 
-
-Biggest possible circle:
-
-usableCircumference = (self.bounds.width - scaleThickness) * pi * .75
+This is very much experimental. 

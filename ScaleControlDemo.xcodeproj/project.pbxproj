@@ -17,7 +17,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		0195BCF229649EFC007C8C0F /* IntegerSelector.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = IntegerSelector.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		0195BCF229649EFC007C8C0F /* ScaleControlDemo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ScaleControlDemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		0195BCF529649EFC007C8C0F /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		0195BCF729649EFC007C8C0F /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
 		0195BCF929649EFC007C8C0F /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; usesTabs = 1; };
@@ -44,7 +44,7 @@
 			isa = PBXGroup;
 			children = (
 				0195BD0B296518BB007C8C0F /* README.md */,
-				0195BCF429649EFC007C8C0F /* IntegerSelector */,
+				0195BCF429649EFC007C8C0F /* ScaleControlDemo */,
 				0195BCF329649EFC007C8C0F /* Products */,
 			);
 			sourceTree = "<group>";
@@ -53,12 +53,12 @@
 		0195BCF329649EFC007C8C0F /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				0195BCF229649EFC007C8C0F /* IntegerSelector.app */,
+				0195BCF229649EFC007C8C0F /* ScaleControlDemo.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
 		};
-		0195BCF429649EFC007C8C0F /* IntegerSelector */ = {
+		0195BCF429649EFC007C8C0F /* ScaleControlDemo */ = {
 			isa = PBXGroup;
 			children = (
 				0195BCF529649EFC007C8C0F /* AppDelegate.swift */,
@@ -70,15 +70,15 @@
 				0195BD0029649EFD007C8C0F /* LaunchScreen.storyboard */,
 				0195BD0329649EFD007C8C0F /* Info.plist */,
 			);
-			path = IntegerSelector;
+			path = ScaleControlDemo;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		0195BCF129649EFC007C8C0F /* IntegerSelector */ = {
+		0195BCF129649EFC007C8C0F /* ScaleControlDemo */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 0195BD0629649EFD007C8C0F /* Build configuration list for PBXNativeTarget "IntegerSelector" */;
+			buildConfigurationList = 0195BD0629649EFD007C8C0F /* Build configuration list for PBXNativeTarget "ScaleControlDemo" */;
 			buildPhases = (
 				0195BCEE29649EFC007C8C0F /* Sources */,
 				0195BCEF29649EFC007C8C0F /* Frameworks */,
@@ -88,9 +88,9 @@
 			);
 			dependencies = (
 			);
-			name = IntegerSelector;
+			name = ScaleControlDemo;
 			productName = IntegerSelector;
-			productReference = 0195BCF229649EFC007C8C0F /* IntegerSelector.app */;
+			productReference = 0195BCF229649EFC007C8C0F /* ScaleControlDemo.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -108,7 +108,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 0195BCED29649EFC007C8C0F /* Build configuration list for PBXProject "IntegerSelector" */;
+			buildConfigurationList = 0195BCED29649EFC007C8C0F /* Build configuration list for PBXProject "ScaleControlDemo" */;
 			compatibilityVersion = "Xcode 14.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -121,7 +121,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				0195BCF129649EFC007C8C0F /* IntegerSelector */,
+				0195BCF129649EFC007C8C0F /* ScaleControlDemo */,
 			);
 		};
 /* End PBXProject section */
@@ -346,7 +346,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		0195BCED29649EFC007C8C0F /* Build configuration list for PBXProject "IntegerSelector" */ = {
+		0195BCED29649EFC007C8C0F /* Build configuration list for PBXProject "ScaleControlDemo" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				0195BD0429649EFD007C8C0F /* Debug */,
@@ -355,7 +355,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		0195BD0629649EFD007C8C0F /* Build configuration list for PBXNativeTarget "IntegerSelector" */ = {
+		0195BD0629649EFD007C8C0F /* Build configuration list for PBXNativeTarget "ScaleControlDemo" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				0195BD0729649EFD007C8C0F /* Debug */,
