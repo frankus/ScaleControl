@@ -51,12 +51,28 @@ public class ScaleControl: UIControl {
 	@IBInspectable public var minimumDescription: String? {
 		didSet {
 			self.minimumLabel.text = self.minimumDescription
+
+			if let minimumNumber = self.numberLabels.first {
+				if let minimumDescription = self.minimumDescription, let minimumText = minimumNumber.text {
+					minimumNumber.accessibilityLabel = "\(minimumText): \(minimumDescription)"
+				} else {
+					minimumNumber.accessibilityLabel = minimumNumber.text
+				}
+			}
 		}
 	}
 
 	@IBInspectable public var maximumDescription: String? {
 		didSet {
 			self.maximumLabel.text = self.maximumDescription
+
+			if let maximumNumber = self.numberLabels.last {
+				if let maximumDescription = self.maximumDescription, let maximumText = maximumNumber.text {
+					maximumNumber.accessibilityLabel = "\(maximumText): \(maximumDescription)"
+				} else {
+					maximumNumber.accessibilityLabel = maximumNumber.text
+				}
+			}
 		}
 	}
 
@@ -369,39 +385,6 @@ public class ScaleControl: UIControl {
 
 		self.evaluateDisplayMode()
 
-		switch self.displayMode {
-		case .circular:
-			self.scaleViewHeightConstraint.isActive = false
-			self.scaleViewAspectConstraint.isActive = true
-
-			self.selectionViewHorizontalWidthConstraint.isActive = false
-			self.selectionViewRoundWidthConstraint.isActive = true
-
-			self.scaleViewAspectConstraint.constant = 0
-
-		case .horizontal:
-			self.scaleViewHeightConstraint.isActive = true
-			self.scaleViewAspectConstraint.isActive = false
-
-			self.selectionViewRoundWidthConstraint.isActive = false
-			self.selectionViewHorizontalWidthConstraint.isActive = true
-
-			self.scaleViewHeightConstraint.constant = self.scaleThickness
-
-		case .vertical:
-			self.scaleViewHeightConstraint.isActive = true
-			self.scaleViewAspectConstraint.isActive = false
-
-			self.selectionViewHorizontalWidthConstraint.isActive = false
-			self.selectionViewRoundWidthConstraint.isActive = true
-
-			self.scaleViewHeightConstraint.constant = self.scaleThickness * CGFloat(self.range.count)
-			self.scaleViewWidthConstraint.constant = self.scaleThickness
-
-			self.maximumLabelVerticalConstraint.constant = self.scaleThickness / 2
-			self.minimumLabelVerticalConstraint.constant = -self.scaleThickness / 2
-		}
-
 		for widthConstraint in self.numberLabelWidthConstraints {
 			widthConstraint.constant = self.scaleThickness
 		}
@@ -430,6 +413,14 @@ public class ScaleControl: UIControl {
 
 		switch displayMode {
 		case .horizontal:
+			self.scaleViewHeightConstraint.isActive = true
+			self.scaleViewAspectConstraint.isActive = false
+
+			self.selectionViewRoundWidthConstraint.isActive = false
+			self.selectionViewHorizontalWidthConstraint.isActive = true
+
+			self.scaleViewHeightConstraint.constant = self.scaleThickness
+
 			NSLayoutConstraint.deactivate(self.circularXConstraints)
 			NSLayoutConstraint.deactivate(self.circularYConstraints)
 			NSLayoutConstraint.deactivate(self.verticalXConstraints)
@@ -439,6 +430,14 @@ public class ScaleControl: UIControl {
 			NSLayoutConstraint.activate(self.extremaLabelRegularConstraints)
 
 		case .circular:
+			self.scaleViewHeightConstraint.isActive = false
+			self.scaleViewAspectConstraint.isActive = true
+
+			self.selectionViewHorizontalWidthConstraint.isActive = false
+			self.selectionViewRoundWidthConstraint.isActive = true
+
+			self.scaleViewAspectConstraint.constant = 0
+
 			NSLayoutConstraint.deactivate(self.horizontalConstraints)
 			NSLayoutConstraint.deactivate(self.verticalXConstraints)
 			NSLayoutConstraint.deactivate(self.verticalYConstraints)
@@ -448,6 +447,18 @@ public class ScaleControl: UIControl {
 			NSLayoutConstraint.activate(self.extremaLabelRegularConstraints)
 
 		case .vertical:
+			self.scaleViewHeightConstraint.isActive = true
+			self.scaleViewAspectConstraint.isActive = false
+
+			self.selectionViewHorizontalWidthConstraint.isActive = false
+			self.selectionViewRoundWidthConstraint.isActive = true
+
+			self.scaleViewHeightConstraint.constant = self.scaleThickness * CGFloat(self.range.count)
+			self.scaleViewWidthConstraint.constant = self.scaleThickness
+
+			self.maximumLabelVerticalConstraint.constant = self.scaleThickness / 2
+			self.minimumLabelVerticalConstraint.constant = -self.scaleThickness / 2
+
 			NSLayoutConstraint.deactivate(self.circularXConstraints)
 			NSLayoutConstraint.deactivate(self.circularYConstraints)
 			NSLayoutConstraint.deactivate(self.horizontalConstraints)
@@ -493,6 +504,8 @@ public class ScaleControl: UIControl {
 			label.adjustsFontForContentSizeCategory = true
 			label.font = self.numberFont
 			label.translatesAutoresizingMaskIntoConstraints = false
+			label.isAccessibilityElement = true
+			label.accessibilityTraits = [.button]
 
 			self.numberLabels.append(label)
 			self.scaleView.insertSubview(label, aboveSubview: self.selectionView)
@@ -517,6 +530,8 @@ public class ScaleControl: UIControl {
 		}
 
 		self.selectionViewHorizontalWidthConstraint = self.selectionView.widthAnchor.constraint(equalTo: self.scaleView.widthAnchor, multiplier: 1 / CGFloat(self.range.count), constant: -4)
+
+		self.accessibilityElements = self.numberLabels
 	}
 
 	private func updateSelection() {
@@ -527,7 +542,10 @@ public class ScaleControl: UIControl {
 
 			for label in self.numberLabels {
 				label.textColor = label == selectedLabel ? self.selectedNumberColor : self.numberColor
+				label.accessibilityTraits.remove(.selected)
 			}
+
+			selectedLabel.accessibilityTraits.insert(.selected)
 
 			self.scaleView.removeConstraints(self.selectionViewPositionConstraints)
 			
