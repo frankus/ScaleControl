@@ -5,6 +5,10 @@
 //  Created by Frank Schmitt on 2023-01-03.
 //
 
+// TODO: single-finger gesture recognizer
+// TODO: VoiceOver
+// TODO: Alignment Rect?
+
 import UIKit
 
 @IBDesignable
@@ -110,8 +114,6 @@ public class ScaleControl: UIControl {
 		super.layoutSubviews()
 
 		self.updateScaleView()
-
-		//self.selectionView.layer.cornerRadius = min(self.selectionView.bounds.height, self.selectionView.bounds.width) / 2
 	}
 
 	public override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
@@ -207,7 +209,7 @@ public class ScaleControl: UIControl {
 		// Update display mode based on scale length and round-or-wider buttons.
 		if nominalWidth >= lengthOfScale {
 			self.displayMode = .horizontal
-		} else if usableCircumference >= lengthOfScale {
+		} else if usableCircumference >= lengthOfScale && isPortraitPhone == true {
 			self.displayMode = .circular
 		} else {
 			self.displayMode = .vertical
@@ -258,6 +260,7 @@ public class ScaleControl: UIControl {
 	}
 
 	private var scaleViewAspectConstraint = NSLayoutConstraint()
+	private var scaleViewWidthConstraint = NSLayoutConstraint()
 	private var scaleViewHeightConstraint = NSLayoutConstraint()
 
 	private var selectionViewHorizontalWidthConstraint = NSLayoutConstraint()
@@ -270,7 +273,14 @@ public class ScaleControl: UIControl {
 	private var horizontalConstraints = [NSLayoutConstraint]()
 	private var circularXConstraints = [NSLayoutConstraint]()
 	private var circularYConstraints = [NSLayoutConstraint]()
-	private var verticalConstraints = [NSLayoutConstraint]()
+	private var verticalXConstraints = [NSLayoutConstraint]()
+	private var verticalYConstraints = [NSLayoutConstraint]()
+
+	private var extremaLabelRegularConstraints = [NSLayoutConstraint]()
+	private var extremaLabelVerticalConstraints = [NSLayoutConstraint]()
+
+	private var maximumLabelVerticalConstraint = NSLayoutConstraint()
+	private var minimumLabelVerticalConstraint = NSLayoutConstraint()
 
 	private func configureViews() {
 		self.evaluateDisplayMode()
@@ -311,11 +321,9 @@ public class ScaleControl: UIControl {
 		self.selectionViewHeightConstraint = self.selectionView.heightAnchor.constraint(equalToConstant: self.scaleThickness - 4)
 		self.selectionViewRoundWidthConstraint = self.selectionView.widthAnchor.constraint(equalToConstant: self.scaleThickness - 4)
 
-		NSLayoutConstraint.activate([
-			self.scaleView.topAnchor.constraint(equalTo: self.topAnchor),
-			self.scaleView.leadingAnchor.constraint(equalTo: self.leadingAnchor),
-			self.trailingAnchor.constraint(equalTo: self.scaleView.trailingAnchor),
+		self.scaleViewWidthConstraint = self.scaleView.widthAnchor.constraint(equalToConstant: self.scaleThickness)
 
+		self.extremaLabelRegularConstraints = [
 			self.minimumLabel.topAnchor.constraint(equalToSystemSpacingBelow: self.scaleView.bottomAnchor, multiplier: 1),
 			self.maximumLabel.topAnchor.constraint(equalTo: self.minimumLabel.topAnchor),
 
@@ -325,6 +333,26 @@ public class ScaleControl: UIControl {
 
 			self.bottomAnchor.constraint(equalTo: self.minimumLabel.bottomAnchor),
 			self.maximumLabel.bottomAnchor.constraint(equalTo: self.minimumLabel.bottomAnchor),
+
+			self.trailingAnchor.constraint(equalTo: self.scaleView.trailingAnchor),
+		]
+
+		self.maximumLabelVerticalConstraint = self.maximumLabel.centerYAnchor.constraint(equalTo: self.scaleView.topAnchor, constant: self.scaleThickness / 2)
+		self.minimumLabelVerticalConstraint = self.minimumLabel.centerYAnchor.constraint(equalTo: self.scaleView.bottomAnchor, constant: -self.scaleThickness / 2)
+
+		self.extremaLabelVerticalConstraints = [
+			self.maximumLabel.leadingAnchor.constraint(equalToSystemSpacingAfter: self.scaleView.trailingAnchor, multiplier: 1),
+			self.minimumLabel.topAnchor.constraint(greaterThanOrEqualToSystemSpacingBelow: self.maximumLabel.bottomAnchor, multiplier: 1),
+			self.minimumLabel.leadingAnchor.constraint(equalToSystemSpacingAfter: self.scaleView.trailingAnchor, multiplier: 1),
+			self.bottomAnchor.constraint(equalTo: self.scaleView.bottomAnchor),
+			self.scaleViewWidthConstraint,
+			self.maximumLabelVerticalConstraint,
+			self.minimumLabelVerticalConstraint
+		]
+
+		NSLayoutConstraint.activate([
+			self.scaleView.topAnchor.constraint(equalTo: self.topAnchor),
+			self.scaleView.leadingAnchor.constraint(equalTo: self.leadingAnchor),
 
 			self.selectionViewHeightConstraint
 		])
@@ -349,7 +377,7 @@ public class ScaleControl: UIControl {
 			self.selectionViewHorizontalWidthConstraint.isActive = false
 			self.selectionViewRoundWidthConstraint.isActive = true
 
-			self.scaleViewAspectConstraint.constant = 0//self.scaleThickness / 2
+			self.scaleViewAspectConstraint.constant = 0
 
 		case .horizontal:
 			self.scaleViewHeightConstraint.isActive = true
@@ -368,6 +396,10 @@ public class ScaleControl: UIControl {
 			self.selectionViewRoundWidthConstraint.isActive = true
 
 			self.scaleViewHeightConstraint.constant = self.scaleThickness * CGFloat(self.range.count)
+			self.scaleViewWidthConstraint.constant = self.scaleThickness
+
+			self.maximumLabelVerticalConstraint.constant = self.scaleThickness / 2
+			self.minimumLabelVerticalConstraint.constant = -self.scaleThickness / 2
 		}
 
 		for widthConstraint in self.numberLabelWidthConstraints {
@@ -392,24 +424,37 @@ public class ScaleControl: UIControl {
 			angle += angleIncrement
 		}
 
+		for constraint in self.verticalXConstraints {
+			constraint.constant = self.scaleThickness / 2
+		}
+
 		switch displayMode {
 		case .horizontal:
 			NSLayoutConstraint.deactivate(self.circularXConstraints)
 			NSLayoutConstraint.deactivate(self.circularYConstraints)
-			NSLayoutConstraint.deactivate(self.verticalConstraints)
+			NSLayoutConstraint.deactivate(self.verticalXConstraints)
+			NSLayoutConstraint.deactivate(self.verticalYConstraints)
 			NSLayoutConstraint.activate(self.horizontalConstraints)
+			NSLayoutConstraint.deactivate(self.extremaLabelVerticalConstraints)
+			NSLayoutConstraint.activate(self.extremaLabelRegularConstraints)
 
 		case .circular:
 			NSLayoutConstraint.deactivate(self.horizontalConstraints)
-			NSLayoutConstraint.deactivate(self.verticalConstraints)
+			NSLayoutConstraint.deactivate(self.verticalXConstraints)
+			NSLayoutConstraint.deactivate(self.verticalYConstraints)
 			NSLayoutConstraint.activate(self.circularXConstraints)
 			NSLayoutConstraint.activate(self.circularYConstraints)
+			NSLayoutConstraint.deactivate(self.extremaLabelVerticalConstraints)
+			NSLayoutConstraint.activate(self.extremaLabelRegularConstraints)
 
 		case .vertical:
 			NSLayoutConstraint.deactivate(self.circularXConstraints)
 			NSLayoutConstraint.deactivate(self.circularYConstraints)
 			NSLayoutConstraint.deactivate(self.horizontalConstraints)
-			NSLayoutConstraint.activate(self.verticalConstraints)
+			NSLayoutConstraint.activate(self.verticalXConstraints)
+			NSLayoutConstraint.activate(self.verticalYConstraints)
+			NSLayoutConstraint.deactivate(self.extremaLabelRegularConstraints)
+			NSLayoutConstraint.activate(self.extremaLabelVerticalConstraints)
 		}
 	}
 
@@ -429,7 +474,8 @@ public class ScaleControl: UIControl {
 		self.horizontalConstraints.removeAll()
 		self.circularXConstraints.removeAll()
 		self.circularYConstraints.removeAll()
-		self.verticalConstraints.removeAll()
+		self.verticalXConstraints.removeAll()
+		self.verticalYConstraints.removeAll()
 
 		let fractionalIncrement = 2.0 / CGFloat(self.range.count)
 		var fraction = fractionalIncrement / 2
@@ -458,9 +504,9 @@ public class ScaleControl: UIControl {
 
 			self.horizontalConstraints.append(NSLayoutConstraint(item: label, attribute: .centerY, relatedBy: .equal, toItem: self.scaleView, attribute: .centerY, multiplier: 1, constant: 0))
 
-			self.verticalConstraints.append(NSLayoutConstraint(item: label, attribute: .centerX, relatedBy: .equal, toItem: self.scaleView, attribute: .centerX, multiplier: 1, constant: 0))
+			self.verticalXConstraints.append(NSLayoutConstraint(item: label, attribute: .centerX, relatedBy: .equal, toItem: self.scaleView, attribute: .leading, multiplier: 1, constant: self.scaleThickness / 2))
 
-			self.verticalConstraints.append(NSLayoutConstraint(item: label, attribute: .centerY, relatedBy: .equal, toItem: self.scaleView, attribute: .centerY, multiplier: fraction, constant: 0))
+			self.verticalYConstraints.append(NSLayoutConstraint(item: label, attribute: .centerY, relatedBy: .equal, toItem: self.scaleView, attribute: .centerY, multiplier: fraction, constant: 0))
 
 			self.circularXConstraints.append(NSLayoutConstraint(item: label, attribute: .centerX, relatedBy: .equal, toItem: self.scaleView, attribute: .centerX, multiplier: 1 + cos(angle), constant: -scaleThickness / 2 * cos(angle)))
 
@@ -497,15 +543,12 @@ public class ScaleControl: UIControl {
 	}
 
 	@objc private func tap(_ sender: UITapGestureRecognizer) {
-		// TODO: Use hit testing?
-		if sender.location(in: self).y <= self.minimumLabel.frame.minY {
-			if let index = self.findIndex(for: sender.location(in: self.scaleView)) {
-				let correspondingValue = self.range.clamp(index + range.lowerBound)
+		if let index = self.findIndex(for: sender.location(in: self.scaleView)) {
+			let correspondingValue = self.range.clamp(index + range.lowerBound)
 
-				if self.value != correspondingValue {
-					self.value = correspondingValue
-					self.sendActions(for: .valueChanged)
-				}
+			if self.value != correspondingValue {
+				self.value = correspondingValue
+				self.sendActions(for: .valueChanged)
 			}
 		}
 	}
