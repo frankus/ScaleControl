@@ -56,7 +56,7 @@ public class ScaleControl: UIControl {
 		}
 	}
 
-	@objc dynamic public var scaleColor: UIColor = .secondarySystemBackground
+	@objc dynamic public var scaleColor: UIColor = .secondarySystemFill
 
 	@objc dynamic public var selectionColor: UIColor = .tintColor
 
@@ -66,7 +66,7 @@ public class ScaleControl: UIControl {
 
 	@objc dynamic public var selectorInset: CGFloat = 2
 
-	@objc dynamic public var numberFont: UIFont = .preferredFont(forTextStyle: .body)
+	@objc dynamic public var numberFont: UIFont = .preferredFont(forTextStyle: .headline)
 
 	@objc dynamic public var descriptionFont: UIFont = .preferredFont(forTextStyle: .footnote)
 
@@ -109,13 +109,22 @@ public class ScaleControl: UIControl {
 	override public func layoutSubviews() {
 		super.layoutSubviews()
 
-		self.selectionView.layer.cornerRadius = min(self.selectionView.bounds.height, self.selectionView.bounds.width) / 2
+		self.updateScaleView()
+
+		//self.selectionView.layer.cornerRadius = min(self.selectionView.bounds.height, self.selectionView.bounds.width) / 2
 	}
 
 	public override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
 		super.traitCollectionDidChange(previousTraitCollection)
 
 		self.evaluateDisplayMode()
+
+		self.shapeLayer.strokeColor = self.scaleColor.cgColor
+		self.shapeLayer.lineWidth = self.scaleThickness
+
+		self.selectionView.layer.cornerRadius = (self.scaleThickness - 4) / 2
+
+		self.setNeedsUpdateConstraints()
 	}
 
 	public func setSelectedValue(_ selectedValue: Int, animated: Bool) {
@@ -127,6 +136,13 @@ public class ScaleControl: UIControl {
 			UIView.animate(withDuration: Self.animationDuration, animations: updateBlock)
 		} else {
 			updateBlock()
+		}
+	}
+
+	public override func didMoveToSuperview() {
+		// TODO: figure out how to do this without gross hacks
+		DispatchQueue.main.async {
+			self.selectionView.layer.cornerRadius = (self.scaleThickness - 4) / 2
 		}
 	}
 
@@ -175,8 +191,8 @@ public class ScaleControl: UIControl {
 	private var descriptionHeight: CGFloat = 32
 
 	private func updateScaledValues() {
-		self.scaleThickness = max(32, self.numberFontMetrics.scaledValue(for: 32, compatibleWith: self.traitCollection))
-		self.descriptionHeight = max(32, self.descriptionFontMetrics.scaledValue(for: 32, compatibleWith: self.traitCollection))
+		self.scaleThickness = max(32, self.displayScaleRound(self.numberFontMetrics.scaledValue(for: 32, compatibleWith: self.traitCollection)))
+		self.descriptionHeight = max(32, self.displayScaleRound(self.descriptionFontMetrics.scaledValue(for: 32, compatibleWith: self.traitCollection)))
 	}
 
 	private func evaluateDisplayMode() {
@@ -244,13 +260,16 @@ public class ScaleControl: UIControl {
 	private var scaleViewAspectConstraint = NSLayoutConstraint()
 	private var scaleViewHeightConstraint = NSLayoutConstraint()
 
-	private var selectionViewSizeConstraints = [NSLayoutConstraint]()
+	private var selectionViewHorizontalWidthConstraint = NSLayoutConstraint()
+	private var selectionViewRoundWidthConstraint = NSLayoutConstraint()
+	private var selectionViewHeightConstraint = NSLayoutConstraint()
 	private var selectionViewPositionConstraints = [NSLayoutConstraint()]
 
 	private var numberLabelWidthConstraints = [NSLayoutConstraint]()
 	private var numberLabelHeightConstraints = [NSLayoutConstraint]()
 	private var horizontalConstraints = [NSLayoutConstraint]()
-	private var circularConstraints = [NSLayoutConstraint]()
+	private var circularXConstraints = [NSLayoutConstraint]()
+	private var circularYConstraints = [NSLayoutConstraint]()
 	private var verticalConstraints = [NSLayoutConstraint]()
 
 	private func configureViews() {
@@ -286,8 +305,11 @@ public class ScaleControl: UIControl {
 		self.maximumLabel.translatesAutoresizingMaskIntoConstraints = false
 		self.addSubview(self.maximumLabel)
 
-		self.scaleViewAspectConstraint = self.scaleView.heightAnchor.constraint(equalTo: self.scaleView.widthAnchor, multiplier: 1/*(1 + cos(.pi / 4)) / 2 */, constant: self.scaleThickness / 2)
+		self.scaleViewAspectConstraint = self.scaleView.heightAnchor.constraint(equalTo: self.scaleView.widthAnchor, multiplier: 1/*(1 + cos(.pi / 4)) / 2 */, constant: 0 /*self.scaleThickness / 2*/)
 		self.scaleViewHeightConstraint = self.scaleView.heightAnchor.constraint(equalToConstant: self.scaleThickness)
+
+		self.selectionViewHeightConstraint = self.selectionView.heightAnchor.constraint(equalToConstant: self.scaleThickness - 4)
+		self.selectionViewRoundWidthConstraint = self.selectionView.widthAnchor.constraint(equalToConstant: self.scaleThickness - 4)
 
 		NSLayoutConstraint.activate([
 			self.scaleView.topAnchor.constraint(equalTo: self.topAnchor),
@@ -303,20 +325,19 @@ public class ScaleControl: UIControl {
 
 			self.bottomAnchor.constraint(equalTo: self.minimumLabel.bottomAnchor),
 			self.maximumLabel.bottomAnchor.constraint(equalTo: self.minimumLabel.bottomAnchor),
+
+			self.selectionViewHeightConstraint
 		])
-
-		self.selectionViewSizeConstraints = [
-			self.selectionView.widthAnchor.constraint(equalToConstant: self.scaleThickness),
-			self.selectionView.heightAnchor.constraint(equalToConstant: self.scaleThickness)
-		]
-
-		NSLayoutConstraint.activate(self.selectionViewSizeConstraints)
 
 		self.updateSelection()
 	}
 
 	public override func updateConstraints() {
 		super.updateConstraints()
+
+		guard range.lowerBound > -998 && range.upperBound < 999 else {
+			return
+		}
 
 		self.evaluateDisplayMode()
 
@@ -325,17 +346,26 @@ public class ScaleControl: UIControl {
 			self.scaleViewHeightConstraint.isActive = false
 			self.scaleViewAspectConstraint.isActive = true
 
-			self.scaleViewAspectConstraint.constant = self.scaleThickness / 2
+			self.selectionViewHorizontalWidthConstraint.isActive = false
+			self.selectionViewRoundWidthConstraint.isActive = true
+
+			self.scaleViewAspectConstraint.constant = 0//self.scaleThickness / 2
 
 		case .horizontal:
 			self.scaleViewHeightConstraint.isActive = true
 			self.scaleViewAspectConstraint.isActive = false
+
+			self.selectionViewRoundWidthConstraint.isActive = false
+			self.selectionViewHorizontalWidthConstraint.isActive = true
 
 			self.scaleViewHeightConstraint.constant = self.scaleThickness
 
 		case .vertical:
 			self.scaleViewHeightConstraint.isActive = true
 			self.scaleViewAspectConstraint.isActive = false
+
+			self.selectionViewHorizontalWidthConstraint.isActive = false
+			self.selectionViewRoundWidthConstraint.isActive = true
 
 			self.scaleViewHeightConstraint.constant = self.scaleThickness * CGFloat(self.range.count)
 		}
@@ -348,25 +378,36 @@ public class ScaleControl: UIControl {
 			heightConstraint.constant = self.scaleThickness
 		}
 
-		for sizeConstraint in selectionViewSizeConstraints {
-			sizeConstraint.constant = self.scaleThickness
-		}
+		self.selectionViewRoundWidthConstraint.constant = self.scaleThickness - 4
+		self.selectionViewHeightConstraint.constant = self.scaleThickness - 4
 
-		// TODO: update radial constraint constants for scale thickness
+		let maxAngle: CGFloat = 0.75 * 2 * .pi // Use 3/4 of a circle.
+		let angleIncrement = maxAngle / CGFloat(self.range.count - 1)
+		var angle: CGFloat = 0.75 * .pi // Start at 7:30, end at 4:30.
+
+		for (xConstraint, yConstraint) in zip(self.circularXConstraints, self.circularYConstraints) {
+			xConstraint.constant = -scaleThickness / 2 * cos(angle)
+			yConstraint.constant = -scaleThickness / 2 * sin(angle)
+
+			angle += angleIncrement
+		}
 
 		switch displayMode {
 		case .horizontal:
-			NSLayoutConstraint.deactivate(self.circularConstraints)
+			NSLayoutConstraint.deactivate(self.circularXConstraints)
+			NSLayoutConstraint.deactivate(self.circularYConstraints)
 			NSLayoutConstraint.deactivate(self.verticalConstraints)
 			NSLayoutConstraint.activate(self.horizontalConstraints)
 
 		case .circular:
 			NSLayoutConstraint.deactivate(self.horizontalConstraints)
 			NSLayoutConstraint.deactivate(self.verticalConstraints)
-			NSLayoutConstraint.activate(self.circularConstraints)
+			NSLayoutConstraint.activate(self.circularXConstraints)
+			NSLayoutConstraint.activate(self.circularYConstraints)
 
 		case .vertical:
-			NSLayoutConstraint.deactivate(self.circularConstraints)
+			NSLayoutConstraint.deactivate(self.circularXConstraints)
+			NSLayoutConstraint.deactivate(self.circularYConstraints)
 			NSLayoutConstraint.deactivate(self.horizontalConstraints)
 			NSLayoutConstraint.activate(self.verticalConstraints)
 		}
@@ -386,7 +427,8 @@ public class ScaleControl: UIControl {
 		self.numberLabelWidthConstraints.removeAll()
 		self.numberLabelHeightConstraints.removeAll()
 		self.horizontalConstraints.removeAll()
-		self.circularConstraints.removeAll()
+		self.circularXConstraints.removeAll()
+		self.circularYConstraints.removeAll()
 		self.verticalConstraints.removeAll()
 
 		let fractionalIncrement = 2.0 / CGFloat(self.range.count)
@@ -420,13 +462,15 @@ public class ScaleControl: UIControl {
 
 			self.verticalConstraints.append(NSLayoutConstraint(item: label, attribute: .centerY, relatedBy: .equal, toItem: self.scaleView, attribute: .centerY, multiplier: fraction, constant: 0))
 
-			self.circularConstraints.append(NSLayoutConstraint(item: label, attribute: .centerX, relatedBy: .equal, toItem: self.scaleView, attribute: .centerX, multiplier: 1 + cos(angle), constant: -scaleThickness / 2 * cos(angle)))
+			self.circularXConstraints.append(NSLayoutConstraint(item: label, attribute: .centerX, relatedBy: .equal, toItem: self.scaleView, attribute: .centerX, multiplier: 1 + cos(angle), constant: -scaleThickness / 2 * cos(angle)))
 
-			self.circularConstraints.append(NSLayoutConstraint(item: label, attribute: .centerY, relatedBy: .equal, toItem: self.scaleView, attribute: .centerY, multiplier: 1 + sin(angle) + 0.0001, constant: -scaleThickness / 2 * sin(angle)))
+			self.circularYConstraints.append(NSLayoutConstraint(item: label, attribute: .centerY, relatedBy: .equal, toItem: self.scaleView, attribute: .centerY, multiplier: 1 + sin(angle) + 0.0001, constant: -scaleThickness / 2 * sin(angle)))
 
 			fraction += fractionalIncrement
 			angle += angleIncrement
 		}
+
+		self.selectionViewHorizontalWidthConstraint = self.selectionView.widthAnchor.constraint(equalTo: self.scaleView.widthAnchor, multiplier: 1 / CGFloat(self.range.count), constant: -4)
 	}
 
 	private func updateSelection() {
