@@ -5,8 +5,6 @@
 //  Created by Frank Schmitt on 2023-01-03.
 //
 
-// TODO: single-finger gesture recognizer
-// TODO: VoiceOver
 // TODO: Alignment Rect?
 
 import UIKit
@@ -45,6 +43,8 @@ public class ScaleControl: UIControl {
 			} else {
 				self.value = self.range.clamp(newValue)
 			}
+
+			self.highlightedValue = self.value
 		}
 	}
 
@@ -164,6 +164,51 @@ public class ScaleControl: UIControl {
 		}
 	}
 
+	public override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+		super.touchesBegan(touches, with: event)
+
+		guard let touch = touches.first else {
+			return
+		}
+
+		self.highlightedValue = self.findIndex(for: touch.location(in: self.scaleView))
+	}
+
+	public override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
+		super.touchesMoved(touches, with: event)
+
+		guard let touch = touches.first else {
+			return
+		}
+
+		self.highlightedValue = self.findIndex(for: touch.location(in: self.scaleView))
+	}
+
+	public override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
+		super.touchesEnded(touches, with: event)
+
+		guard let touch = touches.first else {
+			return
+		}
+
+		self.highlightedValue = self.findIndex(for: touch.location(in: self.scaleView))
+
+		if self.value != self.highlightedValue {
+			if let newValue = self.highlightedValue {
+				self.value = newValue
+				self.sendActions(for: .valueChanged)
+			} else {
+				self.highlightedValue = self.value
+			}
+		}
+	}
+
+	public override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
+		super.touchesCancelled(touches, with: event)
+
+		self.highlightedValue = self.value
+	}
+
 	// MARK: - NSCoding
 
 	required init?(coder: NSCoder) {
@@ -185,23 +230,20 @@ public class ScaleControl: UIControl {
 	private let minimumLabel = UILabel()
 	private let maximumLabel = UILabel()
 
-	private let tapGestureRecognizer = UITapGestureRecognizer()
-	private let panGestureRecognizer = UIPanGestureRecognizer()
-
 	private let numberFontMetrics = UIFontMetrics(forTextStyle: .body)
 	private let descriptionFontMetrics = UIFontMetrics(forTextStyle: .footnote)
 
-	private var value: Int? {
+	private var highlightedValue: Int? = nil {
 		didSet {
 			self.updateSelection()
-			self.setNeedsLayout()
 		}
 	}
+
+	private var value: Int?
 
 	private var range: ClosedRange<Int> {
 		didSet {
 			self.configureNumberLabels()
-			self.setNeedsLayout()
 		}
 	}
 
@@ -304,12 +346,6 @@ public class ScaleControl: UIControl {
 		self.configureScaleView()
 		self.scaleView.translatesAutoresizingMaskIntoConstraints = false
 		self.addSubview(self.scaleView)
-
-		self.tapGestureRecognizer.addTarget(self, action: #selector(tap(_:)))
-		self.addGestureRecognizer(self.tapGestureRecognizer)
-
-		self.panGestureRecognizer.addTarget(self, action: #selector(pan(_:)))
-		self.addGestureRecognizer(self.panGestureRecognizer)
 
 		self.selectionView.backgroundColor = self.selectionColor
 		self.selectionView.translatesAutoresizingMaskIntoConstraints = false
@@ -535,7 +571,7 @@ public class ScaleControl: UIControl {
 	}
 
 	private func updateSelection() {
-		if let value = self.value {
+		if let value = self.highlightedValue {
 			self.selectionView.isHidden = false
 
 			let selectedLabel = self.numberLabels[value - self.range.lowerBound]
@@ -557,16 +593,10 @@ public class ScaleControl: UIControl {
 			NSLayoutConstraint.activate(self.selectionViewPositionConstraints)
 		} else {
 			self.selectionView.isHidden = true
-		}
-	}
 
-	@objc private func tap(_ sender: UITapGestureRecognizer) {
-		if let index = self.findIndex(for: sender.location(in: self.scaleView)) {
-			let correspondingValue = self.range.clamp(index + range.lowerBound)
-
-			if self.value != correspondingValue {
-				self.value = correspondingValue
-				self.sendActions(for: .valueChanged)
+			for label in self.numberLabels {
+				label.textColor = self.numberColor
+				label.accessibilityTraits.remove(.selected)
 			}
 		}
 	}
@@ -590,7 +620,7 @@ public class ScaleControl: UIControl {
 
 	private func findLinearIndex(axisFraction: CGFloat, offAxisFraction: CGFloat) -> Int? {
 		if offAxisFraction > -0.2 && offAxisFraction < 1.2 {
-			return Int(axisFraction * CGFloat(self.range.count))
+			return self.range.clamp(Int(axisFraction * CGFloat(self.range.count)))
 		} else {
 			return nil
 		}
@@ -606,28 +636,12 @@ public class ScaleControl: UIControl {
 			let segmentSize = (1.5 * .pi) / (CGFloat(self.range.count) - 1)
 
 			if angleFromScaleStart > -segmentSize / 2 && angleFromScaleStart < 1.5 * .pi + segmentSize / 2 {
-				return Int(round(angleFromScaleStart / (1.5 * .pi) * (CGFloat(self.range.count) - 1)))
+				return self.range.clamp(Int(round(angleFromScaleStart / (1.5 * .pi) * (CGFloat(self.range.count) - 1))))
 			} else {
 				return nil
 			}
 		} else {
 			return nil
-		}
-	}
-
-	@objc private func pan(_ sender: UIPanGestureRecognizer) {
-		let index = Int(sender.location(in: self.scaleView).x * CGFloat(self.range.count) / self.scaleView.bounds.width)
-		let correspondingValue = self.range.clamp(index + range.lowerBound)
-
-		if let value = self.value, abs(value - correspondingValue) > 1 || self.value == nil {
-			// Don't recognize a pan if not starting close to current value.
-			sender.reset()
-		} else {
-			self.value = correspondingValue
-
-			if sender.state == .ended {
-				self.sendActions(for: .valueChanged)
-			}
 		}
 	}
 }
